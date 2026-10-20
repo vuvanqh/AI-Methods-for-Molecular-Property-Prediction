@@ -219,9 +219,8 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# ---------------------------------------------------------------------------
-# Node / React / Frontend
-# ---------------------------------------------------------------------------
+### Node / React / Frontend
+
 # Dependencies
 node_modules/
 .pnp
@@ -261,4 +260,7 @@ coverage/
 # OS / Editor artifacts
 .DS_Store
 Thumbs.db
+
+
+.idea/
 
