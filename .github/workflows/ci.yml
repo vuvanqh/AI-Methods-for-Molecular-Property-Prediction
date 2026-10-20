@@ -1,0 +1,117 @@
+name: "CI"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-ci:
+    name: "Backend CI (Python ${{ matrix.python-version }})"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Check for backend files"
+        id: check-backend
+        run: |
+          if [ -f requirements.txt ] || [ -f pyproject.toml ]; then
+            echo "has_code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_code=false" >> "$GITHUB_OUTPUT"
+            echo "No requirements.txt or pyproject.toml found in backend/. Skipping backend CI."
+          fi
+
+      - name: "Set up Python ${{ matrix.python-version }}"
+        if: steps.check-backend.outputs.has_code == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+          cache-dependency-path: |
+            backend/requirements*.txt
+            backend/pyproject.toml
+
+      - name: "Install dependencies"
+        if: steps.check-backend.outputs.has_code == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          elif [ -f pyproject.toml ]; then
+            pip install .
+          fi
+          pip install ruff pytest httpx
+
+      - name: "Lint with Ruff"
+        if: steps.check-backend.outputs.has_code == 'true'
+        run: |
+          ruff check .
+
+      - name: "Run backend tests"
+        if: steps.check-backend.outputs.has_code == 'true'
+        run: |
+          if [ -d "tests" ]; then
+            pytest
+          else
+            echo "No backend/tests directory found yet. Skipping pytest."
+          fi
+
+  frontend-ci:
+    name: "Frontend CI"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Check for frontend files"
+        id: check-frontend
+        run: |
+          if [ -f package.json ]; then
+            echo "has_code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_code=false" >> "$GITHUB_OUTPUT"
+            echo "No package.json found in frontend/. Skipping frontend CI."
+          fi
+
+      - name: "Set up Node.js 20"
+        if: steps.check-frontend.outputs.has_code == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: ${{ hashFiles('frontend/package-lock.json') != '' && 'npm' || '' }}
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: "Install dependencies"
+        if: steps.check-frontend.outputs.has_code == 'true'
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: "Run lint and build"
+        if: steps.check-frontend.outputs.has_code == 'true'
+        run: |
+          npm run lint --if-present
+          npm test --if-present -- --run
+          npm run build --if-present
