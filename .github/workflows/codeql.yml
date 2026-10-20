@@ -1,4 +1,5 @@
-name: "CodeQL Analysis"
+# For semantic static code analysis
+name: "CodeQL"
 
 on:
   push:
@@ -20,7 +21,7 @@ jobs:
     timeout-minutes: 360
     strategy:
       fail-fast: false
-      matrix:
+      matrix: # simply for parallelization
         include:
           - language: "javascript-typescript"
             build-mode: "none"
@@ -31,7 +32,27 @@ jobs:
       - name: "Checkout repository"
         uses: actions/checkout@v4
 
+      - name: "Check if ${{ matrix.language }} files exist"
+        id: check-code
+        run: |
+          if [ "${{ matrix.language }}" = "python" ]; then
+            if find . -name "*.py" -not -path "*/.*" | grep -q .; then
+              echo "has_files=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "has_files=false" >> "$GITHUB_OUTPUT"
+              echo "No Python files found yet. Skipping CodeQL analysis."
+            fi
+          elif [ "${{ matrix.language }}" = "javascript-typescript" ]; then
+            if find . \( -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" \) -not -path "*/.*" -not -path "*/node_modules/*" | grep -q .; then
+              echo "has_files=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "has_files=false" >> "$GITHUB_OUTPUT"
+              echo "No JavaScript/TypeScript files found yet. Skipping CodeQL analysis."
+            fi
+          fi
+
       - name: "Initialize CodeQL"
+        if: steps.check-code.outputs.has_files == 'true'
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
@@ -39,6 +60,7 @@ jobs:
           queries: +security-extended,security-and-quality
 
       - name: "Perform CodeQL Analysis"
+        if: steps.check-code.outputs.has_files == 'true'
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"

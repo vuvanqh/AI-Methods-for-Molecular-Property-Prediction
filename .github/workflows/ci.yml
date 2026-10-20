@@ -26,7 +26,18 @@ jobs:
       - name: "Checkout repository"
         uses: actions/checkout@v4
 
+      - name: "Check for backend files"
+        id: check-backend
+        run: |
+          if [ -f requirements.txt ] || [ -f pyproject.toml ]; then
+            echo "has_code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_code=false" >> "$GITHUB_OUTPUT"
+            echo "No requirements.txt or pyproject.toml found in backend/. Skipping backend CI."
+          fi
+
       - name: "Set up Python ${{ matrix.python-version }}"
+        if: steps.check-backend.outputs.has_code == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -36,26 +47,23 @@ jobs:
             backend/pyproject.toml
 
       - name: "Install dependencies"
+        if: steps.check-backend.outputs.has_code == 'true'
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           elif [ -f pyproject.toml ]; then
             pip install .
-          else
-            echo "No requirements.txt or pyproject.toml found in backend/ yet. Skipping dependency install."
           fi
           pip install ruff pytest httpx
 
       - name: "Lint with Ruff"
+        if: steps.check-backend.outputs.has_code == 'true'
         run: |
-          if [ -f requirements.txt ] || [ -f pyproject.toml ] || [ -d "app" ] || [ -d "src" ]; then
-            ruff check .
-          else
-            echo "Backend code not scaffolded yet. Skipping lint."
-          fi
+          ruff check .
 
       - name: "Run backend tests"
+        if: steps.check-backend.outputs.has_code == 'true'
         run: |
           if [ -d "tests" ]; then
             pytest
@@ -64,7 +72,7 @@ jobs:
           fi
 
   frontend-ci:
-    name: "Frontend CI (React 19+)"
+    name: "Frontend CI"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -74,28 +82,36 @@ jobs:
       - name: "Checkout repository"
         uses: actions/checkout@v4
 
+      - name: "Check for frontend files"
+        id: check-frontend
+        run: |
+          if [ -f package.json ]; then
+            echo "has_code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_code=false" >> "$GITHUB_OUTPUT"
+            echo "No package.json found in frontend/. Skipping frontend CI."
+          fi
+
       - name: "Set up Node.js 20"
+        if: steps.check-frontend.outputs.has_code == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
+          cache: ${{ hashFiles('frontend/package-lock.json') != '' && 'npm' || '' }}
           cache-dependency-path: frontend/package-lock.json
 
       - name: "Install dependencies"
+        if: steps.check-frontend.outputs.has_code == 'true'
         run: |
           if [ -f package-lock.json ]; then
             npm ci
-          elif [ -f package.json ]; then
-            npm install
           else
-            echo "No package.json found in frontend/ yet. Skipping npm install."
+            npm install
           fi
 
       - name: "Run lint and build"
+        if: steps.check-frontend.outputs.has_code == 'true'
         run: |
-          if [ -f package.json ]; then
-            npm run lint --if-present
-            npm run build --if-present
-          else
-            echo "Frontend code not scaffolded yet. Skipping build."
-          fi
+          npm run lint --if-present
+          npm test --if-present -- --run
+          npm run build --if-present
