@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: "Check if ${{ matrix.language }} files exist"
         id: check-code
@@ -53,7 +53,7 @@ jobs:
 
       - name: "Initialize CodeQL"
         if: steps.check-code.outputs.has_files == 'true'
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
@@ -61,6 +61,6 @@ jobs:
 
       - name: "Perform CodeQL Analysis"
         if: steps.check-code.outputs.has_files == 'true'
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
