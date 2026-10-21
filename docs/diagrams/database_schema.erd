@@ -1,0 +1,308 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dineug/erd-editor/main/json-schema/schema.json",
+  "version": "3.0.0",
+  "settings": {
+    "originX": 0,
+    "originY": 0,
+    "zoomLevel": 1,
+    "show": 431,
+    "database": 16,
+    "databaseName": "",
+    "canvasType": "ERD",
+    "language": 1,
+    "tableNameCase": 4,
+    "columnNameCase": 2,
+    "bracketType": 1,
+    "relationshipDataTypeSync": true,
+    "columnOrder": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64
+    ],
+    "maxWidthComment": -1,
+    "lockSettings": 63
+  },
+  "doc": {
+    "tableIds": [
+      "03h3aw1q9o0uxk0qipj583875",
+      "03h3awae9nmzz0xk0nli1sud5",
+      "03h3b3t1ni9nb5e8ysdu9i82t",
+      "03h3b4jt6bleko6pks71n7nze"
+    ],
+    "relationshipIds": [
+      "03h3awr9pqax5ycnws1hhvlov",
+      "03h3b3wye5j7r1yqytc5picrg"
+    ],
+    "indexIds": [],
+    "memoIds": []
+  },
+  "collections": {
+    "tableEntities": {
+      "03h3aw1q9o0uxk0qipj583875": {
+        "id": "03h3aw1q9o0uxk0qipj583875",
+        "name": "Molecule_Source",
+        "comment": "",
+        "columnIds": [
+          "03h3aw42i24n5hploqik9ufnu",
+          "03h3awr9pqax5ycnwrzmcuo1c",
+          "03h3awurf5mwdvtgt7sc4e9w8"
+        ],
+        "ui": {
+          "x": -107.4615,
+          "y": 402.8192,
+          "color": ""
+        }
+      },
+      "03h3awae9nmzz0xk0nli1sud5": {
+        "id": "03h3awae9nmzz0xk0nli1sud5",
+        "name": "Molecule",
+        "comment": "",
+        "columnIds": [
+          "03h3awaqvj9rct2b52x6m6xcv",
+          "03h3awcdeupwn0t5uce91bk6b",
+          "03h3awivb5vja0c9xabzgrhkw"
+        ],
+        "ui": {
+          "x": 533.9326,
+          "y": 403.6426,
+          "color": ""
+        }
+      },
+      "03h3b3t1ni9nb5e8ysdu9i82t": {
+        "id": "03h3b3t1ni9nb5e8ysdu9i82t",
+        "name": "Molecule_Embedding",
+        "comment": "unique(molecule_id, embedding_model)",
+        "columnIds": [
+          "03h3b3tvgzlslhf9ce4brpkae",
+          "03h3b3wye5j7r1yqytata3lai",
+          "03h3b3y7jc4rcagumzicr2pxv",
+          "03h3bdtkdgjjvdk6b0lsig3bc",
+          "03h3b46bzf2jli59lwoiqigdi"
+        ],
+        "ui": {
+          "x": -93.4837,
+          "y": 142.8553,
+          "color": ""
+        }
+      },
+      "03h3b4jt6bleko6pks71n7nze": {
+        "id": "03h3b4jt6bleko6pks71n7nze",
+        "name": "Experiment",
+        "comment": "ui",
+        "columnIds": [
+          "03h3b4mn29mm903jrmje9mo3z",
+          "03h3b5o3z8gk3wpz3qr5w4d9j",
+          "03h3b4wkas884d0gwftu6bfnm",
+          "03h3b4yp51p4ua76f0edb8sor",
+          "03h3b54lfmiy923xo4vdx4m7y",
+          "03h3b59mufyppt1e3ull5oks2"
+        ],
+        "ui": {
+          "x": 516.7049,
+          "y": 144.3052,
+          "color": ""
+        }
+      }
+    },
+    "tableColumnEntities": {
+      "03h3aw42i24n5hploqik9ufnu": {
+        "id": "03h3aw42i24n5hploqik9ufnu",
+        "tableId": "03h3aw1q9o0uxk0qipj583875",
+        "name": "provider",
+        "comment": "external database (e.g., PubChem, ChEMBL)",
+        "dataType": "text",
+        "default": "",
+        "options": 10
+      },
+      "03h3awr9pqax5ycnwrzmcuo1c": {
+        "id": "03h3awr9pqax5ycnwrzmcuo1c",
+        "tableId": "03h3aw1q9o0uxk0qipj583875",
+        "name": "molecule_id",
+        "comment": "",
+        "dataType": "uuid",
+        "default": "",
+        "options": 10
+      },
+      "03h3awurf5mwdvtgt7sc4e9w8": {
+        "id": "03h3awurf5mwdvtgt7sc4e9w8",
+        "tableId": "03h3aw1q9o0uxk0qipj583875",
+        "name": "source_url",
+        "comment": "",
+        "dataType": "text",
+        "default": "",
+        "options": 8
+      },
+      "03h3awaqvj9rct2b52x6m6xcv": {
+        "id": "03h3awaqvj9rct2b52x6m6xcv",
+        "tableId": "03h3awae9nmzz0xk0nli1sud5",
+        "name": "id",
+        "comment": "",
+        "dataType": "uuid",
+        "default": "",
+        "options": 10
+      },
+      "03h3awcdeupwn0t5uce91bk6b": {
+        "id": "03h3awcdeupwn0t5uce91bk6b",
+        "tableId": "03h3awae9nmzz0xk0nli1sud5",
+        "name": "standardized_smiles",
+        "comment": "unique",
+        "dataType": "text",
+        "default": "",
+        "options": 8
+      },
+      "03h3awivb5vja0c9xabzgrhkw": {
+        "id": "03h3awivb5vja0c9xabzgrhkw",
+        "tableId": "03h3awae9nmzz0xk0nli1sud5",
+        "name": "morgan_fingerprint",
+        "comment": "",
+        "dataType": "bit",
+        "default": "",
+        "options": 8
+      },
+      "03h3b3tvgzlslhf9ce4brpkae": {
+        "id": "03h3b3tvgzlslhf9ce4brpkae",
+        "tableId": "03h3b3t1ni9nb5e8ysdu9i82t",
+        "name": "id",
+        "comment": "",
+        "dataType": "uuid",
+        "default": "",
+        "options": 10
+      },
+      "03h3b3wye5j7r1yqytata3lai": {
+        "id": "03h3b3wye5j7r1yqytata3lai",
+        "tableId": "03h3b3t1ni9nb5e8ysdu9i82t",
+        "name": "molecule_id",
+        "comment": "",
+        "dataType": "uuid",
+        "default": "",
+        "options": 8
+      },
+      "03h3b3y7jc4rcagumzicr2pxv": {
+        "id": "03h3b3y7jc4rcagumzicr2pxv",
+        "tableId": "03h3b3t1ni9nb5e8ysdu9i82t",
+        "name": "embedding_model",
+        "comment": "customizable via .env",
+        "dataType": "text",
+        "default": "",
+        "options": 8
+      },
+      "03h3b46bzf2jli59lwoiqigdi": {
+        "id": "03h3b46bzf2jli59lwoiqigdi",
+        "tableId": "03h3b3t1ni9nb5e8ysdu9i82t",
+        "name": "embedding",
+        "comment": "pgvector",
+        "dataType": "vector",
+        "default": "",
+        "options": 8
+      },
+      "03h3bdtkdgjjvdk6b0lsig3bc": {
+        "id": "03h3bdtkdgjjvdk6b0lsig3bc",
+        "tableId": "03h3b3t1ni9nb5e8ysdu9i82t",
+        "name": "embedding_model_version",
+        "comment": "",
+        "dataType": "text",
+        "default": "",
+        "options": 8
+      },
+      "03h3b4mn29mm903jrmje9mo3z": {
+        "id": "03h3b4mn29mm903jrmje9mo3z",
+        "tableId": "03h3b4jt6bleko6pks71n7nze",
+        "name": "id",
+        "comment": "",
+        "dataType": "uuid",
+        "default": "",
+        "options": 10
+      },
+      "03h3b4wkas884d0gwftu6bfnm": {
+        "id": "03h3b4wkas884d0gwftu6bfnm",
+        "tableId": "03h3b4jt6bleko6pks71n7nze",
+        "name": "created_at",
+        "comment": "",
+        "dataType": "timestamptz",
+        "default": "datetime(now)",
+        "options": 8
+      },
+      "03h3b4yp51p4ua76f0edb8sor": {
+        "id": "03h3b4yp51p4ua76f0edb8sor",
+        "tableId": "03h3b4jt6bleko6pks71n7nze",
+        "name": "status",
+        "comment": "pending | in_progress | completed | failed",
+        "dataType": "text",
+        "default": "pending",
+        "options": 8
+      },
+      "03h3b54lfmiy923xo4vdx4m7y": {
+        "id": "03h3b54lfmiy923xo4vdx4m7y",
+        "tableId": "03h3b4jt6bleko6pks71n7nze",
+        "name": "config",
+        "comment": "execution configuration and model versions; not client-facing",
+        "dataType": "jsonb",
+        "default": "",
+        "options": 8
+      },
+      "03h3b59mufyppt1e3ull5oks2": {
+        "id": "03h3b59mufyppt1e3ull5oks2",
+        "tableId": "03h3b4jt6bleko6pks71n7nze",
+        "name": "results",
+        "comment": "snapshot of predictions, attributions, retrieval and explanations",
+        "dataType": "jsonb",
+        "default": "",
+        "options": 0
+      },
+      "03h3b5o3z8gk3wpz3qr5w4d9j": {
+        "id": "03h3b5o3z8gk3wpz3qr5w4d9j",
+        "tableId": "03h3b4jt6bleko6pks71n7nze",
+        "name": "standardized_input_smiles",
+        "comment": "",
+        "dataType": "text",
+        "default": "",
+        "options": 8
+      }
+    },
+    "relationshipEntities": {
+      "03h3awr9pqax5ycnws1hhvlov": {
+        "id": "03h3awr9pqax5ycnws1hhvlov",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "03h3awae9nmzz0xk0nli1sud5",
+          "columnIds": [
+            "03h3awaqvj9rct2b52x6m6xcv"
+          ]
+        },
+        "end": {
+          "tableId": "03h3aw1q9o0uxk0qipj583875",
+          "columnIds": [
+            "03h3awr9pqax5ycnwrzmcuo1c"
+          ]
+        }
+      },
+      "03h3b3wye5j7r1yqytc5picrg": {
+        "id": "03h3b3wye5j7r1yqytc5picrg",
+        "relationshipType": 16,
+        "onDelete": 1,
+        "onUpdate": 1,
+        "start": {
+          "tableId": "03h3awae9nmzz0xk0nli1sud5",
+          "columnIds": [
+            "03h3awaqvj9rct2b52x6m6xcv"
+          ]
+        },
+        "end": {
+          "tableId": "03h3b3t1ni9nb5e8ysdu9i82t",
+          "columnIds": [
+            "03h3b3wye5j7r1yqytata3lai"
+          ]
+        }
+      }
+    },
+    "indexEntities": {},
+    "indexColumnEntities": {},
+    "memoEntities": {}
+  }
+}
