@@ -6,7 +6,7 @@ app_router = APIRouter()
 
 @app_router.post(
     "/predict-properties", 
-    response_model=PredictionResponse,
+    response_model=PredictionResponse, # fastapi will automatically convert the returned dict to the response model
     status_code=status.HTTP_200_OK,
     description="Predicts properties using GNN, attributes to substructures using XAI, extracts similar molecules and generates summary",
     responses = {

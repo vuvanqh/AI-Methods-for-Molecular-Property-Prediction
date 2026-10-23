@@ -21,6 +21,4 @@ gnn_router = APIRouter()
     summary="Run GNN prediction and XAI attribution for a given SMILES string",
 )
 async def prediction_and_attribution_endpoint(request: InferenceRequest):
-    gnn_xai_result = await gnn_xai_inference(request.smiles)
-    
-    return InferenceResponse(**gnn_xai_result)
+    return await gnn_xai_inference(request.smiles)
