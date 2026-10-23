@@ -1,13 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any
 
-class PredictionRequest(BaseModel):
-    smiles: str = Field(
-        ..., 
-        description="The molecule in SMILES format.", 
-        example="O=C(C)Oc1ccccc1C(=O)O"
-    )
-
 
 class SimilarCompoundModel(BaseModel): #TODO add more fields?
     smiles: str = Field(
@@ -23,28 +16,14 @@ class SimilarCompoundModel(BaseModel): #TODO add more fields?
     sources: List[str]  #TODO which required and add field with description
 
 
-class PropertyDataModel(BaseModel): 
-    prediction: bool = Field(
-        ..., 
-        description="Binary prediction result.",
-        example=True
-    )
-    xai_attributions: List[float] = Field(
-        ..., 
-        description="Positional attribution array mapped to atom indices.",
-        example=[0.1, 0.2, 0.3]
-    ) #TODO add what else is needed for XAI
 
 
 class GNNXAIInferenceResponse(BaseModel):
-    metabolism: Dict[str, PropertyDataModel] = Field(
-        ..., 
-        description="Properties predictions with XAI attributions for metabolism-related properties."
+    mappedsmiles: str = Field(
+        ...,
     )
-    toxicity: Dict[str, PropertyDataModel] = Field(
-        ..., 
-        description="Properties predictions with XAI attributions for toxicity-related properties."
-    )
+    predictions: Dict[str, bool]
+    atomscores: Dict[str, List[float]]
 
 
 class PredictionResponse(BaseModel):
