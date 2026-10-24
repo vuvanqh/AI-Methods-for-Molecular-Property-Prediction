@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status
-from .model import PredictionRequest, PredictionResponse, ErrorResponse
+from .model import InferenceRequest, PredictionResponse, ErrorResponse
 from .service import predict_properties
 
 app_router = APIRouter()
@@ -21,5 +21,5 @@ app_router = APIRouter()
         },
     },
 )  # todo status code??
-async def predict_properties_endpoint(request: PredictionRequest):
+async def predict_properties_endpoint(request: InferenceRequest):
     return await predict_properties(request.smiles)
