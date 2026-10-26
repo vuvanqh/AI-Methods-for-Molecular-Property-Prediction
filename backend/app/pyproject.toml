@@ -6,3 +6,6 @@ dependencies = [
     "fastapi[standard]>=0.159.1",
     "uvicorn>=0.54.0",
 ]
+
+[tool.ruff.format]
+skip-magic-trailing-comma = false
