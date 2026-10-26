@@ -40,7 +40,7 @@ class MoleculeEmbedding(Base):
         nullable=False,
     )
 
-    molecule: Mapped[Molecule] = relationship(
+    molecule: Mapped["Molecule"] = relationship(
         back_populates="molecule_embedding",
     )
 
