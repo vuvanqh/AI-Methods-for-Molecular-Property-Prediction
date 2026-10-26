@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pgvector.sqlalchemy import BIT
-from sqlalchemy import Column, UUID, Text
+from sqlalchemy import UUID, Text
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 import uuid
 

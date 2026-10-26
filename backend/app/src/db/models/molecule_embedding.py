@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pgvector.sqlalchemy import BIT, Vector
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import UUID, Text, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
