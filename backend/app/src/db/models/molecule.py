@@ -5,11 +5,7 @@ from sqlalchemy import UUID, Text
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 import uuid
 
-from typing import TYPE_CHECKING
 from backend.app.src.db.models.base import Base
-
-if TYPE_CHECKING:
-    from .molecule_embedding import MoleculeEmbedding
 
 
 class Molecule(Base):
