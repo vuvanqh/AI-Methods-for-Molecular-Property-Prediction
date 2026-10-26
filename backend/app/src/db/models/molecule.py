@@ -10,7 +10,6 @@ from backend.app.src.db.models.base import Base
 
 if TYPE_CHECKING:
     from .molecule_embedding import MoleculeEmbedding
-    from .molecule_source import MoleculeSource
 
 
 class Molecule(Base):
