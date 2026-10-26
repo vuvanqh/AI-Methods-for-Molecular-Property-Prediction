@@ -33,12 +33,12 @@ class Molecule(Base):
         nullable=False,
     )
 
-    molecule_embedding: Mapped[list[MoleculeEmbedding]] = relationship(
+    molecule_embedding: Mapped[list["MoleculeEmbedding"]] = relationship(
         back_populates="molecule",
         cascade="all, delete-orphan",
     )
 
-    molecule_sources: Mapped[list[MoleculeSource]] = relationship(
+    molecule_sources: Mapped[list["MoleculeSource"]] = relationship(
         back_populates="molecule",
         cascade="all, delete-orphan",
     )
