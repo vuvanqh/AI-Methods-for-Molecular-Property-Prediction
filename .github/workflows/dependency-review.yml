@@ -1,3 +1,4 @@
+# Intercepts PR's in real time before they are merged and checks if a vulnrerable third-party package/incompatible sorftware licence was introduced. If so it will immediatelly fail the PR
 name: "Dependency Review"
 
 on:
@@ -13,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: "Dependency Review"
-        uses: actions/dependency-review-action@v5
+        uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: moderate
