@@ -3,14 +3,14 @@ from pydantic import BaseModel, Field
 
 class InferenceRequest(BaseModel):
     smiles: str = Field(..., description="SMILES string sent by orchestrator")
+    atoms: dict[int, str] = Field(..., description="Mapped atoms in the molecule, where the key is the atom index and the value is the atom type.")
 
 
 class GNNXAIInferenceResponse(BaseModel):
-    mappedsmiles: str = Field(
-        ...,
-    )
+    
     prediction: dict[str, bool]
-    atomscores: dict[str, list[float]]
+    probabilities: dict[str, float]
+    atomscores: dict[str, dict[int, float]] = Field(..., description="Atom-level scores for each atom in the molecule, where the key of the outer dict is the property, key of the inne dict is the atom index and the value is a dictionary of scores for each property.")
 
 
 class ErrorResponse(BaseModel):
