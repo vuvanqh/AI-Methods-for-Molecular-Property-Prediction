@@ -36,40 +36,34 @@
     "relationshipIds": [
       "03h3awr9pqax5ycnws1hhvlov",
       "03h3b3wye5j7r1yqytc5picrg"
-    ],
-    "indexIds": [],
-    "memoIds": []
+    ]
   },
   "collections": {
     "tableEntities": {
       "03h3aw1q9o0uxk0qipj583875": {
         "id": "03h3aw1q9o0uxk0qipj583875",
         "name": "Molecule_Source",
-        "comment": "",
         "columnIds": [
           "03h3aw42i24n5hploqik9ufnu",
           "03h3awr9pqax5ycnwrzmcuo1c",
           "03h3awurf5mwdvtgt7sc4e9w8"
         ],
         "ui": {
-          "x": -107.4615,
-          "y": 402.8192,
-          "color": ""
+          "x": -139.7974,
+          "y": 157.4041
         }
       },
       "03h3awae9nmzz0xk0nli1sud5": {
         "id": "03h3awae9nmzz0xk0nli1sud5",
         "name": "Molecule",
-        "comment": "",
         "columnIds": [
           "03h3awaqvj9rct2b52x6m6xcv",
           "03h3awcdeupwn0t5uce91bk6b",
           "03h3awivb5vja0c9xabzgrhkw"
         ],
         "ui": {
-          "x": 533.9326,
-          "y": 403.6426,
-          "color": ""
+          "x": -141.6947,
+          "y": 344.2315
         }
       },
       "03h3b3t1ni9nb5e8ysdu9i82t": {
@@ -84,14 +78,13 @@
           "03h3b46bzf2jli59lwoiqigdi"
         ],
         "ui": {
-          "x": -93.4837,
-          "y": 142.8553,
-          "color": ""
+          "x": -142.5185,
+          "y": 517.7105
         }
       },
       "03h3b4jt6bleko6pks71n7nze": {
         "id": "03h3b4jt6bleko6pks71n7nze",
-        "name": "Experiment",
+        "name": "Analysis",
         "comment": "ui",
         "columnIds": [
           "03h3b4mn29mm903jrmje9mo3z",
@@ -102,9 +95,8 @@
           "03h3b59mufyppt1e3ull5oks2"
         ],
         "ui": {
-          "x": 516.7049,
-          "y": 144.3052,
-          "color": ""
+          "x": -142.5191,
+          "y": 724.1737
         }
       }
     },
@@ -115,34 +107,27 @@
         "name": "provider",
         "comment": "external database (e.g., PubChem, ChEMBL)",
         "dataType": "text",
-        "default": "",
         "options": 10
       },
       "03h3awr9pqax5ycnwrzmcuo1c": {
         "id": "03h3awr9pqax5ycnwrzmcuo1c",
         "tableId": "03h3aw1q9o0uxk0qipj583875",
         "name": "molecule_id",
-        "comment": "",
         "dataType": "uuid",
-        "default": "",
         "options": 10
       },
       "03h3awurf5mwdvtgt7sc4e9w8": {
         "id": "03h3awurf5mwdvtgt7sc4e9w8",
         "tableId": "03h3aw1q9o0uxk0qipj583875",
         "name": "source_url",
-        "comment": "",
         "dataType": "text",
-        "default": "",
         "options": 8
       },
       "03h3awaqvj9rct2b52x6m6xcv": {
         "id": "03h3awaqvj9rct2b52x6m6xcv",
         "tableId": "03h3awae9nmzz0xk0nli1sud5",
         "name": "id",
-        "comment": "",
         "dataType": "uuid",
-        "default": "",
         "options": 10
       },
       "03h3awcdeupwn0t5uce91bk6b": {
@@ -151,34 +136,27 @@
         "name": "standardized_smiles",
         "comment": "unique",
         "dataType": "text",
-        "default": "",
         "options": 8
       },
       "03h3awivb5vja0c9xabzgrhkw": {
         "id": "03h3awivb5vja0c9xabzgrhkw",
         "tableId": "03h3awae9nmzz0xk0nli1sud5",
         "name": "morgan_fingerprint",
-        "comment": "",
         "dataType": "bit",
-        "default": "",
         "options": 8
       },
       "03h3b3tvgzlslhf9ce4brpkae": {
         "id": "03h3b3tvgzlslhf9ce4brpkae",
         "tableId": "03h3b3t1ni9nb5e8ysdu9i82t",
         "name": "id",
-        "comment": "",
         "dataType": "uuid",
-        "default": "",
         "options": 10
       },
       "03h3b3wye5j7r1yqytata3lai": {
         "id": "03h3b3wye5j7r1yqytata3lai",
         "tableId": "03h3b3t1ni9nb5e8ysdu9i82t",
         "name": "molecule_id",
-        "comment": "",
         "dataType": "uuid",
-        "default": "",
         "options": 8
       },
       "03h3b3y7jc4rcagumzicr2pxv": {
@@ -187,7 +165,6 @@
         "name": "embedding_model",
         "comment": "customizable via .env",
         "dataType": "text",
-        "default": "",
         "options": 8
       },
       "03h3b46bzf2jli59lwoiqigdi": {
@@ -196,32 +173,26 @@
         "name": "embedding",
         "comment": "pgvector",
         "dataType": "vector",
-        "default": "",
         "options": 8
       },
       "03h3bdtkdgjjvdk6b0lsig3bc": {
         "id": "03h3bdtkdgjjvdk6b0lsig3bc",
         "tableId": "03h3b3t1ni9nb5e8ysdu9i82t",
         "name": "embedding_model_version",
-        "comment": "",
         "dataType": "text",
-        "default": "",
         "options": 8
       },
       "03h3b4mn29mm903jrmje9mo3z": {
         "id": "03h3b4mn29mm903jrmje9mo3z",
         "tableId": "03h3b4jt6bleko6pks71n7nze",
         "name": "id",
-        "comment": "",
         "dataType": "uuid",
-        "default": "",
         "options": 10
       },
       "03h3b4wkas884d0gwftu6bfnm": {
         "id": "03h3b4wkas884d0gwftu6bfnm",
         "tableId": "03h3b4jt6bleko6pks71n7nze",
         "name": "created_at",
-        "comment": "",
         "dataType": "timestamptz",
         "default": "datetime(now)",
         "options": 8
@@ -241,7 +212,6 @@
         "name": "config",
         "comment": "execution configuration and model versions; not client-facing",
         "dataType": "jsonb",
-        "default": "",
         "options": 8
       },
       "03h3b59mufyppt1e3ull5oks2": {
@@ -250,16 +220,13 @@
         "name": "results",
         "comment": "snapshot of predictions, attributions, retrieval and explanations",
         "dataType": "jsonb",
-        "default": "",
         "options": 0
       },
       "03h3b5o3z8gk3wpz3qr5w4d9j": {
         "id": "03h3b5o3z8gk3wpz3qr5w4d9j",
         "tableId": "03h3b4jt6bleko6pks71n7nze",
         "name": "standardized_input_smiles",
-        "comment": "",
         "dataType": "text",
-        "default": "",
         "options": 8
       }
     },
@@ -300,9 +267,6 @@
           ]
         }
       }
-    },
-    "indexEntities": {},
-    "indexColumnEntities": {},
-    "memoEntities": {}
+    }
   }
 }
