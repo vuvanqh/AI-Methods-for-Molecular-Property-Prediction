@@ -1,6 +1,6 @@
 import torch
 
-from chemprop.data.collate import BatchMolGraph
+from chemprop.data import BatchMolGraph
 from chemprop.featurizers import SimpleMoleculeMolGraphFeaturizer
 from chemprop.models import MPNN
 from chemprop.nn import BondMessagePassing, NormAggregation, BinaryClassificationFFN
@@ -57,7 +57,9 @@ class Chemprop:
         mol_graphs = [self.featurizer(mol)]
         batch_graph = BatchMolGraph(mol_graphs)
 
-        return batch_graph.to(self.device)
+        batch_graph.to(self.device)
+
+        return batch_graph
     
 
     def get_embeddings(self, batch_graph):

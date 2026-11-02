@@ -88,5 +88,5 @@ class MolecularInferenceService:
                 "predictions": predictions,
                 "probabilities": probabilities,
                 "atomscores": atom_scores,
-                "atom_symbols": atom_symbols
+                "atomsymbols": atom_symbols
             }
