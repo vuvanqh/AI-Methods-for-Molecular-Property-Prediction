@@ -1,4 +1,6 @@
-#defione all of the prediction properties
+import torch
+
+#define all of the prediction properties
 
 TOX_21 = [
     "NR-AR",
@@ -25,5 +27,11 @@ HERG = [
     "hERG_Karim"
 ]
 
-PREDICTIONS = TOX_21 + CYP450 + HERG
-TASKS_NUMBER = len(PREDICTIONS)
+TASKS = TOX_21 + CYP450 + HERG
+TASKS_NUMBER = len(TASKS)
+
+BINARY_PREDICTION_THRESHOLD = 0.5
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+IG_STEPS = 100
