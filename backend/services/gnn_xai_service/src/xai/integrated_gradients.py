@@ -50,16 +50,20 @@ class IntegratedGradientsExplainer:
         atom_scores_lists = {}
 
         def forward_func(embeddings_batched):
-            """Forward pass function compatible with Captum"""
+            """
+            Captum passes embeddings with shape:
+            [batch_size, number_of_atoms, hidden_dim]
+            """
 
-            embeddings = embeddings_batched.squeeze(0)
+            logits_list = []
+            for embeddings in embeddings_batched:
+                logits = self.predictor.forward_from_embeddings(
+                    embeddings,
+                    mol_graph_index,
+                )
+                logits_list.append(logits)
 
-            logits = self.predictor.forward_from_embeddings(
-                embeddings,
-                mol_graph_index,
-            )
-
-            return logits
+            return torch.cat(logits_list, dim=0)
 
         # We attribute to atom embeddings not to input (might be changed later)
         ig = IntegratedGradients(forward_func)
