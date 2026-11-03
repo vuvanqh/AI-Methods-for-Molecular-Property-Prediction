@@ -1,5 +1,4 @@
 from rdkit import Chem
-from rdkit.Chem.rdchem import Mol
 from .config import TASKS_NUMBER, DEVICE, BINARY_PREDICTION_THRESHOLD, TASKS, IG_STEPS
 from .gnn_models.chemprop import Chemprop
 from .xai.integrated_gradients import IntegratedGradientsExplainer
