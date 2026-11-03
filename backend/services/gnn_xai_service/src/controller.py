@@ -31,5 +31,5 @@ async def prediction_and_attribution_endpoint(request: Request, payload: Inferen
 
         return JSONResponse( 
             status_code=422,
-            content={"message": str(exc)},
+            content={"message": "The molecule could not be processed."},
         )
