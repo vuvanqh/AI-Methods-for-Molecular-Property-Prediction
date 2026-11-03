@@ -1,0 +1,9 @@
+[project]
+name = "gnn-xai-service"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "captum>=0.9.0",
+    "chemprop>=2.3.1",
+    "fastapi[standard]>=0.159.1",
+]
