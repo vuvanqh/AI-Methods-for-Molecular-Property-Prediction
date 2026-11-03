@@ -3,6 +3,7 @@ from rdkit.Chem.rdchem import Mol
 from .config import TASKS_NUMBER, DEVICE, BINARY_PREDICTION_THRESHOLD, TASKS, IG_STEPS
 from .gnn_models.chemprop import Chemprop
 from .xai.integrated_gradients import IntegratedGradientsExplainer
+from .mol_block_generation import mol_block_generation
 import threading
 
 class MolecularInferenceService:
@@ -73,20 +74,28 @@ class MolecularInferenceService:
                 mol_graph_index=result["mol_graph_index"]
             )
 
-            # get atom symbols using RDKit atom indicesfor frontend visualization TODO
-            atom_symbols = {atom.GetIdx(): atom.GetSymbol() for atom in mol.GetAtoms()}
+            molblock = mol_block_generation(mol)
 
-            atom_scores = {
-                task_name: {
-                    atom_index: float(score)
-                    for atom_index, score in zip(atom_symbols.keys(), atom_scores_lists[task_name])
+
+            molblock_mol = Chem.MolFromMolBlock(molblock, removeHs=False)
+
+            atom_scores = {}
+
+            for task_name in TASKS:
+                scores = atom_scores_lists[task_name]
+
+                atom_scores[task_name] = {
+                    atom.GetIdx(): 
+                    (
+                        # none for hydrogen atoms
+                        float(scores[atom.GetIdx()]) if atom.GetIdx() < mol.GetNumAtoms() else None 
+                    )
+                    for atom in molblock_mol.GetAtoms()
                 }
-                for task_name in TASKS
-            }
 
             return {
                 "predictions": predictions,
                 "probabilities": probabilities,
                 "atomscores": atom_scores,
-                "atomsymbols": atom_symbols
+                "molblock": molblock
             }

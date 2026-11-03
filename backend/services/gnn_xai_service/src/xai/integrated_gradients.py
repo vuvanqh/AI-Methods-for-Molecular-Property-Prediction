@@ -63,7 +63,7 @@ class IntegratedGradientsExplainer:
                 )
                 logits_list.append(logits)
 
-            return torch.cat(logits_list, dim=0)
+            return torch.cat(logits_list, dim=0) 
 
         # We attribute to atom embeddings not to input (might be changed later)
         ig = IntegratedGradients(forward_func)
@@ -78,10 +78,10 @@ class IntegratedGradientsExplainer:
                     inputs=inputs,
                     baselines=baselines,
                     target=task_index,
-                    n_steps=self.steps
+                    n_steps=self.steps  
                 )
 
-                # Sum attribution per atom over the embedding dimensions.
+                # Sum attribution per atom over the embedding dimensions. [1, number_of_atoms, hidden_dim] -> [1, number_of_atoms]
                 attributions = attributions.squeeze(0)
                 scores_per_atom = attributions.sum(dim=-1) 
 

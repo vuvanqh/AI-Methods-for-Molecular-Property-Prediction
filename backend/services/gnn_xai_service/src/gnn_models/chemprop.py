@@ -6,16 +6,18 @@ from chemprop.models import MPNN
 from chemprop.nn import BondMessagePassing, NormAggregation, BinaryClassificationFFN
 
 class Chemprop:
-    '''https://chemprop.readthedocs.io/en/latest/tutorial/python/models/basic_mpnn_model.html'''
+    '''https://chemprop.readthedocs.io/en/latest/tutorial/python/models/basic_mpnn_model.html
+    https://chemprop.readthedocs.io/en/latest/autoapi/chemprop/nn/message_passing/index.html
+    '''
     def __init__(self, n_tasks, device, threshold):
         self.device = device
         self.threshold = threshold 
 
         self.featurizer = SimpleMoleculeMolGraphFeaturizer()
 
-        mp = BondMessagePassing()
-        agg = NormAggregation()
-        ffn = BinaryClassificationFFN(n_tasks)
+        mp = BondMessagePassing() 
+        agg = NormAggregation() 
+        ffn = BinaryClassificationFFN(n_tasks) 
         self.model = MPNN(mp, agg, ffn)
 
         self.model.eval()
