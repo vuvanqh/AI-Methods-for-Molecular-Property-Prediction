@@ -1,4 +1,5 @@
-from rdkit import Chem, AllChem
+from rdkit import Chem
+from rdkit.Chem import AllChem
 
 def mol_block_generation(mol):
     '''
