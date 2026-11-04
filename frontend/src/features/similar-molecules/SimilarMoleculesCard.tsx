@@ -9,7 +9,7 @@ type SimilarMoleculesCardProps = {
 }
 
 export function SimilarMoleculesCard({similarMolecules}: SimilarMoleculesCardProps) {
-    if(!similarMolecules || similarMolecules.length===0)
+    if (!similarMolecules || similarMolecules.length===0)
         return null;
 
     return <Section className="similar-molecules-card card">
@@ -22,10 +22,11 @@ export function SimilarMoleculesCard({similarMolecules}: SimilarMoleculesCardPro
             <Metadata>Similarity</Metadata>
         </div>
 
-        {!similarMolecules || similarMolecules.length==0? <p className="empty-state">No similar molecules available.</p> :
-         <ul className="similar-molecules-list" data-animate="stagger">
-            {similarMolecules.map(m => <SimilarMoleculeItem key={m.molecule_name} name={m.molecule_name} score={m.similarity_score}/>)}
-        </ul>}
+        <ul className="similar-molecules-list" data-animate="stagger">
+            {similarMolecules.map(m => (
+                <SimilarMoleculeItem key={m.molecule_name} name={m.molecule_name} score={m.similarity_score}/>
+            ))}
+        </ul>
 
         <Metadata className="similar-molecules-footnote card__footer">
             Higher scores indicate closer structural relatedness.
