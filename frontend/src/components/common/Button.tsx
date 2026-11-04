@@ -1,11 +1,11 @@
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-type ButtonProps = {
-    buttonText: string;
-    onClick: () => void;
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+    children: ReactNode;
 };
 
-export function Button({buttonText, onClick, ...props}: ButtonProps) {
-    return <button type="button" onClick={onClick} {...props}>
-        {buttonText}
+export function Button({children, ...props}: ButtonProps) {
+    return <button {...props}>
+        {children}
     </button>
 }

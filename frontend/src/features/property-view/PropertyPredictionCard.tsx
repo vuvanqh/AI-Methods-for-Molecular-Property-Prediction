@@ -1,25 +1,35 @@
 import type { PropertyPrediction} from "../../types/molecule";
 import {useState} from "react";
 import {PropertyResultsContainer} from "./PropertyResultsContainer";
+import { Section } from "../../components/common/Section";
+import "./PropertyView.css";
 
-export function PropertyPredictionCard({propertyResult}: {propertyResult: PropertyPrediction[], propertyValue: boolean, confidence: number}) {
-    const [selectedFamilyIndex, setSelectedPropertyFamily] = useState<number>(0);
-    const selectedpropertyFamilty = propertyResult[selectedFamilyIndex];
+type PropertyPredictionCardProps = {
+    propertyResult: PropertyPrediction[],
+    selectedProperty?: string | null,
+    onPropertySelect?: (propertyName: string) => void
+}
 
-    return <div className="property-prediction-card">
-        <div className="property-prediction-header">
-            {selectedpropertyFamilty.property_family}
+export function PropertyPredictionCard({propertyResult, selectedProperty, onPropertySelect}: PropertyPredictionCardProps) {
+    const [selectedFamilyIndex, setSelectedPropertyFamilyIndex] = useState<number>(0);
+    const selectedPropertyFamily = propertyResult[selectedFamilyIndex];
 
-            <select value={selectedpropertyFamilty.property_family} onChange={(e) => setSelectedPropertyFamily(propertyResult?.findIndex(p => p.property_family=== e.target.value))}>
-                {propertyResult.map((property) => (
-                    <option key={property.property_family} value={property.property_family}>
-                        {property.property_family}
-                    </option>
-                ))}
-            </select>
+    if (!propertyResult || propertyResult.length===0)
+        return <p className="empty-state">No predictions available</p>;
 
-        </div>
-        <PropertyResultsContainer selectedPropertyFamily={selectedpropertyFamilty.prediciton_results} onPropertySelect={()=>{}}/> 
+    return <Section className="property-prediction-card card">
+            <div className="property-prediction-header card__header">
+                {selectedPropertyFamily.property_family}
 
-        </div>
+                <select className="property-family-select" value={selectedPropertyFamily.property_family} onChange={(e) => setSelectedPropertyFamilyIndex(propertyResult?.findIndex(p => p.property_family=== e.target.value))}>
+                    {propertyResult.map((property) => (
+                        <option key={property.property_family} value={property.property_family}>
+                            {property.property_family}
+                        </option>
+                    ))}
+                </select>
+            </div>
+            
+            <PropertyResultsContainer selectedPropertyFamily={selectedPropertyFamily.prediciton_results} selectedProperty={selectedProperty} onPropertySelect={onPropertySelect}/>
+        </Section>
 }

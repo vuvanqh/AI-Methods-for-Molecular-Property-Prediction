@@ -1,13 +1,15 @@
+import { Section } from "../../components/common/Section";
 import type {ScientificInterpretation} from "../../types/molecule";
 import {Source} from "./Source";
+import "./ScientificInterpretation.css";
 
 export function ScientificInterpretationCard({scientificInterpretation}: {scientificInterpretation: ScientificInterpretation}) {
 
-    if (!scientificInterpretation.interpretation || scientificInterpretation.interpretation.length === 0) 
+    if (!scientificInterpretation.interpretation || scientificInterpretation.interpretation.length === 0)
         return null;
 
-    return <div className="scientific-interpretation">
-        <header className="scientific-interpretation-header">
+    return <Section className="scientific-interpretation card">
+        <header className="scientific-interpretation-header card__header">
             <h2>Scientific Interpretation</h2>
         </header>
 
@@ -17,11 +19,10 @@ export function ScientificInterpretationCard({scientificInterpretation}: {scient
             </div>
 
             <div className="sources">
-                {
-                    scientificInterpretation.sources.length!=0 &&
-                    scientificInterpretation.sources.map((source, index) => <Source key={source} index={index} source={source}/>)
-                }
+                {scientificInterpretation.sources.length!=0 &&
+                    scientificInterpretation.sources.map((source, index) => <Source key={source} index={index} source={source}/>
+                )}
             </div>
         </div>
-    </div>
+    </Section>
 }

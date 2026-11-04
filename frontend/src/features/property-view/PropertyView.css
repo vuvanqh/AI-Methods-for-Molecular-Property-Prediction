@@ -1,0 +1,147 @@
+/* Property prediction card ("CYP P450 inhibition" in diagrams/gui.png). */
+.property-prediction-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.property-prediction-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  color: var(--text);
+}
+
+/* family selector, styled as the reference's inline "Method ⌄" control */
+.property-family-select {
+  appearance: none;
+  -webkit-appearance: none;
+  max-width: 100%;
+  margin-left: -6px;
+  padding: 3px 22px 3px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  background: transparent
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237ea6d8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 4px center / 13px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--link);
+  cursor: pointer;
+  transition:
+    background-color var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out);
+}
+
+.property-family-select:hover {
+  background-color: rgb(126 166 216 / 0.08);
+  border-color: rgb(126 166 216 / 0.2);
+}
+
+.property-family-select option {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/*
+ * Show a few rows and scroll the rest. 4.5 rows on purpose: the half-cut row
+ * signals there is more without needing an extra hint.
+ */
+.property-container {
+  --row-height: 62px; /* .property-button: 2 × 20px padding + one 13.5px line + hairline */
+  --visible-rows: 4.5;
+  max-height: calc(var(--row-height) * var(--visible-rows));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-top: var(--hairline);
+}
+
+.property-button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, auto);
+  align-items: center;
+  gap: var(--s-5);
+  width: 100%;
+  padding: var(--s-5) var(--s-6);
+  border: 0;
+  border-bottom: var(--hairline);
+  background: transparent;
+  text-align: left;
+  transition: background-color var(--t-fast) var(--ease-out);
+}
+
+.property-button:hover {
+  background: rgb(255 255 255 / 0.02);
+}
+
+/* the property whose atom attributions are shown in the 3D viewer */
+.property-button[aria-pressed='true'] {
+  background: rgb(231 179 106 / 0.06);
+  box-shadow: inset 2px 0 0 var(--warm);
+}
+
+.property-button:focus-visible {
+  outline-offset: -2px;
+  border-radius: 0;
+}
+
+.property-name {
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.property-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.property-value::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--no);
+}
+
+.property-value[data-value='true'] {
+  color: var(--yes);
+}
+
+.property-value[data-value='true']::before {
+  background: var(--yes);
+  box-shadow: 0 0 10px rgb(231 179 106 / 0.6);
+}
+
+.property-confidence {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .property-button {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-inline: var(--s-4);
+  }
+
+  .property-confidence {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}

@@ -1,17 +1,31 @@
-import {useState} from "react";
+import { Form } from "react-router-dom";
+import { Button } from "../../components/common/Button";
+import { Section } from "../../components/common/Section";
+import "./SmilesInput.css";
 
-export function SmilesInput(){
-    const [smiles, setSmiles] = useState("");
+type SmilesInputProps = {
+    inputSmiles: string,
+    onChange: (input:string)=>void,
+    onAnalyze: (smiles: string)=>void,
+    disabled: boolean,
+}
 
-    return <div className="smiles-input-container">
-        <label htmlFor="smiles-input">Enter a molecular structure in SMILES format</label>
+export function SmilesInput({inputSmiles, onChange, onAnalyze, disabled}: SmilesInputProps){
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (inputSmiles.trim()) {
+            onAnalyze(inputSmiles.trim());
+        }
+    };
+    return <Section className="smiles-input-container card">
+        <label htmlFor="smiles-input" className="smiles-input-label">Enter a molecular structure in SMILES format</label>
 
-        <div>
-            <input type="text" id="smiles-input" name="smiles-input" placeholder="e.g. C1=CC=CC=C1" onChange={(e)=> setSmiles(e.target.value)} value={smiles}/>
-            <button className="smiles-input-button">
+        <Form onSubmit={handleSubmit} className="smiles-input-form">
+            <input type="text" id="smiles-input" name="smiles-input" placeholder="e.g. C1=CC=CC=C1" onChange={(e)=> onChange(e.target.value)} value={inputSmiles} spellCheck={false} autoComplete="off"/>
+            <Button className="smiles-input-button btn btn--primary" disabled={disabled} type="submit">
                 Analyze Molecule
-            </button>
-        </div>
-        
-    </div>
+            </Button>
+        </Form>
+
+    </Section>
 }
