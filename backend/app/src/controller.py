@@ -1,7 +1,9 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Depends
 from fastapi.responses import JSONResponse
 from .model import InferenceRequest, PredictionResponse, ErrorResponse
 from .service import predict_properties
+from .db.session import get_db
+from sqlalchemy.orm import Session
 
 app_router = APIRouter()
 
@@ -22,9 +24,9 @@ app_router = APIRouter()
         },
     },
 )
-async def predict_properties_endpoint(request: InferenceRequest):
+async def predict_properties_endpoint(request: InferenceRequest, db: Session = Depends(get_db)):
     try:
-        result = await predict_properties(request.smiles)
+        result = await predict_properties(request.smiles, db)
         return result
 
     except ValueError as exc:
