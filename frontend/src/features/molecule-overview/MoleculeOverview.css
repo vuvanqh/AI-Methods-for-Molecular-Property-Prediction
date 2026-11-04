@@ -1,0 +1,368 @@
+/*
+ * 3D molecule + structural overview card (top card in diagrams/gui.png).
+ * CSS only; the component is yours to build. Class contract:
+ *
+ * <section class="molecule-overview card">
+ *   <header class="molecule-overview__header">
+ *     <div>
+ *       <h2 class="molecule-overview__name">Aspirin</h2>
+ *       <p class="molecule-overview__subtitle">Acetylsalicylic acid</p>
+ *     </div>
+ *     <div class="molecule-overview__chips">
+ *       <span class="chip mono">C₉H₈O₄</span>
+ *       <span class="molecule-overview__divider"></span>
+ *       <span class="chip chip--teal">Browser-rendered 3D</span>
+ *     </div>
+ *   </header>
+ *   <div class="molecule-overview__body">
+ *     <div class="molecule-overview__viewer">
+ *       <div class="molecule-overview__viewer-caption"><strong>Interactive 3D model</strong><span>Drag to rotate · Scroll to zoom</span></div>
+ *       <div class="molecule-overview__toolbar"><button class="molecule-overview__tool">…</button></div>
+ *       <div class="molecule-overview__canvas"><!-- 3Dmol.js mounts here --></div>
+ *       <span class="molecule-overview__credit">3Dmol.js</span>
+ *     </div>
+ *     <div class="molecule-overview__panel">
+ *       <p class="eyebrow">Structural overview</p>
+ *       <h3 class="molecule-overview__title">Molecular profile identified <span class="molecule-overview__status">Ready for interpretation.</span></h3>
+ *       <p class="molecule-overview__description">…</p>
+ *       <dl class="molecule-overview__stats">
+ *         <div><dt class="molecule-overview__stat-label">Molecular formula</dt><dd class="molecule-overview__stat-value">…</dd></div>
+ *         … (4 items, 2×2)
+ *       </dl>
+ *       <ul class="molecule-overview__legend"><li data-atom="C">Carbon</li><li data-atom="O">Oxygen</li>…</ul>
+ *     </div>
+ *   </div>
+ * </section>
+ */
+
+.molecule-overview {
+  overflow: hidden;
+}
+
+/* loading state: a slow shimmer on the placeholder text */
+.molecule-overview--placeholder[aria-busy='true'] {
+  animation: molecule-overview-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes molecule-overview-pulse {
+  50% {
+    color: var(--text-muted);
+  }
+}
+
+/* the current `<p>visualization card</p>` stand-in */
+.molecule-overview--placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 340px;
+  font-size: 13px;
+  color: var(--text-subtle);
+  background:
+    radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.05) 1px, transparent 0) 0 0 / 22px 22px,
+    linear-gradient(180deg, var(--surface-2), var(--surface));
+}
+
+.molecule-overview__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-5) var(--s-5);
+  border-bottom: var(--hairline);
+}
+
+.molecule-overview__name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.molecule-overview__subtitle {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.molecule-overview__chips {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+.molecule-overview__chips .mono {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.molecule-overview__divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-strong);
+}
+
+.molecule-overview__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: var(--s-6);
+  padding: var(--s-4) var(--s-5) var(--s-5);
+}
+
+/* ── viewer ── */
+.molecule-overview__viewer {
+  position: relative;
+  min-height: 336px;
+  border: var(--hairline);
+  border-radius: var(--radius-sm);
+  background:
+    radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.045) 1px, transparent 0) 0 0 / 22px 22px,
+    radial-gradient(ellipse at 50% 55%, #121c30, var(--bg-deep) 75%);
+  box-shadow: inset 0 1px 12px rgb(0 0 0 / 0.35);
+  overflow: hidden;
+}
+
+.molecule-overview__canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.molecule-overview__viewer-caption {
+  position: absolute;
+  top: var(--s-4);
+  left: var(--s-4);
+  z-index: 1;
+  display: grid;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.molecule-overview__viewer-caption strong {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.molecule-overview__toolbar {
+  position: absolute;
+  top: var(--s-3);
+  right: var(--s-3);
+  z-index: 1;
+  display: flex;
+  gap: var(--s-2);
+}
+
+.molecule-overview__tool {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background: rgb(11 18 32 / 0.7);
+  color: var(--text-muted);
+  transition:
+    color var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out);
+}
+
+.molecule-overview__tool:hover {
+  color: var(--text);
+  border-color: #3a4a68;
+}
+
+/* XAI marks drawn over the 3D canvas (MoleculeViewer positions them every frame) */
+.molecule-overview__overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* one colour; MoleculeViewer sets each mark's opacity and stroke from its impact strength */
+.molecule-overview__overlay g {
+  --tone: var(--xai-highlight);
+}
+
+.molecule-overview__overlay circle {
+  fill: color-mix(in srgb, var(--tone) 14%, transparent);
+  stroke: var(--tone);
+}
+
+.molecule-overview__overlay text {
+  font-family: var(--mono);
+  font-size: 10px;
+  fill: var(--tone);
+  paint-order: stroke;
+  stroke: var(--bg-deep);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+/* key for the XAI marks, shown while a property is selected */
+.molecule-overview__attribution {
+  position: absolute;
+  left: var(--s-4);
+  bottom: var(--s-3);
+  z-index: 1;
+  display: grid;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.molecule-overview__attribution strong {
+  font-weight: 650;
+  color: var(--text);
+}
+
+.molecule-overview__attribution-scale {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: 10px;
+  color: var(--text-subtle);
+}
+
+.molecule-overview__attribution-scale i {
+  width: 96px;
+  height: 6px;
+  border-radius: 3px;
+  /* dim → full: the same intensity scale the marks use */
+  background: linear-gradient(90deg, color-mix(in srgb, var(--xai-highlight) 15%, transparent), var(--xai-highlight));
+}
+
+.molecule-overview__credit {
+  position: absolute;
+  right: var(--s-3);
+  bottom: var(--s-3);
+  z-index: 1;
+  font-size: 10px;
+  color: var(--text-subtle);
+}
+
+/* ── panel ── */
+.molecule-overview__panel {
+  display: flex;
+  flex-direction: column;
+  padding: var(--s-3) var(--s-1) 0;
+}
+
+.molecule-overview__title {
+  margin-top: var(--s-5);
+  font-size: 21px;
+  font-weight: 650;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+}
+
+.molecule-overview__status {
+  display: block;
+  color: var(--warm);
+}
+
+.molecule-overview__description {
+  margin-top: var(--s-4);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
+.molecule-overview__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: var(--s-6) 0 0;
+  border-top: var(--hairline);
+}
+
+.molecule-overview__stats > div {
+  padding: var(--s-4) 0 var(--s-1);
+}
+
+.molecule-overview__stats > div:nth-child(even) {
+  padding-left: var(--s-5);
+  border-left: var(--hairline);
+}
+
+.molecule-overview__stat-label {
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.molecule-overview__stat-value {
+  margin: var(--s-2) 0 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* units ("g/mol") read as secondary to the number */
+.molecule-overview__stat-value small {
+  font-size: 0.82em;
+  font-weight: 500;
+}
+
+/* keep subscripts from pushing the line height apart */
+.molecule-overview sub {
+  font-size: 0.68em;
+  line-height: 0;
+  vertical-align: -0.25em;
+}
+
+.molecule-overview__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-5);
+  margin-top: auto;
+  padding-top: var(--s-5);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.molecule-overview__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.molecule-overview__legend li::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--atom-c);
+}
+
+.molecule-overview__legend li[data-atom='O']::before {
+  background: var(--atom-o);
+}
+
+.molecule-overview__legend li[data-atom='N']::before {
+  background: var(--atom-n);
+}
+
+.molecule-overview__legend li[data-atom='H']::before {
+  background: var(--atom-h);
+}
+
+@media (max-width: 880px) {
+  .molecule-overview__body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .molecule-overview__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .molecule-overview__viewer {
+    min-height: 260px;
+  }
+}

@@ -1,0 +1,78 @@
+/* Similar molecules & evidence card. */
+.similar-molecules-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.similar-molecules-header {
+  padding-bottom: var(--s-6);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  color: var(--text);
+}
+
+.similar-molecules-card .table-head > * {
+  font-size: 11px;
+  color: var(--link);
+}
+
+.similar-molecules-list {
+  flex: 1;
+}
+
+.similar-molecule-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-6);
+  border-bottom: var(--hairline);
+  transition: background-color var(--t-fast) var(--ease-out);
+}
+
+.similar-molecule-item:hover {
+  background: rgb(255 255 255 / 0.02);
+}
+
+.similar-molecule-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* optional second line (e.g. SMILES or structural note) inside the name block */
+.similar-molecule-name small {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--link);
+}
+
+.similar-molecule-score {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.similar-molecules-footnote {
+  margin-top: auto;
+  font-size: 11.5px;
+  color: var(--link);
+}
+
+.similar-molecules-card .empty-state {
+  flex: 1;
+  display: grid;
+  place-items: center;
+}

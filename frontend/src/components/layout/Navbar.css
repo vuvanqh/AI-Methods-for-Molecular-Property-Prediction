@@ -1,0 +1,45 @@
+/* Top bar: title left, actions right, aligned to the page container. */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  height: 70px;
+  /* matches .container (1096px incl. gutters) without needing a wrapper element */
+  padding-inline: max(var(--s-6), calc((100% - 1048px) / 2));
+  border-bottom: var(--hairline);
+  background: rgb(11 18 32 / 0.72);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+.navbar-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.navbar-button {
+  height: 38px;
+}
+
+@media (max-width: 600px) {
+  .navbar {
+    height: 60px;
+    padding-inline: var(--s-4);
+  }
+
+  .navbar-title {
+    font-size: 15px;
+  }
+}
