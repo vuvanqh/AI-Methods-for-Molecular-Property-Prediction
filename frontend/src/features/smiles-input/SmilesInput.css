@@ -1,0 +1,102 @@
+/* SMILES bar: label row on top, mono field + primary action below. */
+.smiles-input-container {
+  padding: var(--s-4) var(--s-5) var(--s-5);
+}
+
+.smiles-input-label {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* file-code glyph, drawn in CSS so the markup stays untouched */
+.smiles-input-label::before {
+  content: '';
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: var(--warm);
+  -webkit-mask: var(--icon-file-code) center / contain no-repeat;
+  mask: var(--icon-file-code) center / contain no-repeat;
+  --icon-file-code: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpath d='M14 2v6h6'/%3E%3Cpath d='m10 13-2 2 2 2'/%3E%3Cpath d='m14 17 2-2-2-2'/%3E%3C/svg%3E");
+}
+
+.smiles-input-form {
+  display: flex;
+  gap: var(--s-4);
+}
+
+#smiles-input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0 var(--s-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-deep);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35);
+  font-family: var(--mono);
+  font-size: 13.5px;
+  color: var(--text);
+  transition:
+    border-color var(--t-fast) var(--ease-out),
+    box-shadow var(--t-fast) var(--ease-out);
+}
+
+#smiles-input::placeholder {
+  color: var(--text-subtle);
+}
+
+#smiles-input:hover:not(:disabled) {
+  border-color: #3a4a68;
+}
+
+#smiles-input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.35),
+    0 0 0 3px var(--accent-soft);
+}
+
+#smiles-input:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.smiles-input-button {
+  height: 48px;
+  min-width: 172px;
+  padding-inline: var(--s-6);
+  font-size: 14px;
+}
+
+.smiles-input-button::after {
+  content: '→';
+  font-size: 16px;
+  line-height: 1;
+  transition: transform var(--t-fast) var(--ease-out);
+}
+
+.smiles-input-button:hover:not(:disabled)::after {
+  transform: translateX(3px);
+}
+
+@media (max-width: 600px) {
+  .smiles-input-form {
+    flex-direction: column;
+    gap: var(--s-3);
+  }
+
+  #smiles-input {
+    flex: none;
+  }
+
+  .smiles-input-button {
+    width: 100%;
+  }
+}

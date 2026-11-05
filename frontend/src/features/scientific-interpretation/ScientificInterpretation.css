@@ -1,0 +1,72 @@
+/* Scientific interpretation card: long-form text set for reading. */
+.scientific-interpretation-header {
+  margin-inline: var(--s-6);
+  padding-inline: 0;
+  border-bottom: var(--hairline);
+}
+
+.scientific-interpretation-content {
+  padding: var(--s-5) var(--s-6) var(--s-6);
+}
+
+.explanation {
+  font-size: 14px;
+  line-height: 1.75;
+  color: #c9d0dc;
+  text-wrap: pretty;
+}
+
+.explanation p + p {
+  margin-top: var(--s-4);
+}
+
+/* keep author line breaks / blank lines from the model output */
+.explanation p {
+  white-space: pre-line;
+}
+
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-5);
+}
+
+.sources:empty {
+  display: none;
+}
+
+.source a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 var(--s-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--link);
+  transition:
+    color var(--t-fast) var(--ease-out),
+    border-color var(--t-fast) var(--ease-out),
+    background-color var(--t-fast) var(--ease-out);
+}
+
+.source a::before {
+  content: '[';
+  color: var(--text-subtle);
+}
+
+.source a::after {
+  content: ']';
+  color: var(--text-subtle);
+}
+
+.source a:hover {
+  color: var(--text);
+  border-color: rgb(126 166 216 / 0.45);
+  background: rgb(126 166 216 / 0.08);
+}

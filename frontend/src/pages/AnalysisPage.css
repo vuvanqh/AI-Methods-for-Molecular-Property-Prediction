@@ -1,0 +1,375 @@
+/*
+ * Page shell for /analysis.
+ * Landing (no .analysis-results on the page): copy + SMILES bar centred, molecules in the gutters.
+ * Results: heading, cards, SMILES bar at the bottom, as in diagrams/gui.png.
+ */
+
+#root {
+  isolation: isolate;
+}
+
+/* ── Landing ───────────────────────────────────────────────────────────── */
+.landing-hero {
+  position: relative;
+  width: min(720px, 100% - 2 * var(--s-6));
+  margin: auto auto var(--s-8);
+  padding-top: var(--s-12);
+  text-align: center;
+}
+
+.landing-hero .eyebrow {
+  display: block;
+  margin-bottom: var(--s-4);
+}
+
+.landing-hero h1 {
+  font-size: clamp(34px, 5vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.landing-hero p:not(.eyebrow) {
+  max-width: 54ch;
+  margin: var(--s-5) auto 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* faint lavender glow behind the landing copy */
+.landing-hero::before {
+  content: '';
+  position: absolute;
+  inset: -30% -25%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgb(184 166 244 / 0.09), transparent);
+}
+
+/* SMILES bar position: centred on the landing, full width at the bottom of results */
+.smiles-input-container {
+  width: min(760px, 100% - 2 * var(--s-6));
+  margin: 0 auto auto;
+}
+
+#root:not(:has(.landing-hero)) .smiles-input-container {
+  margin-block: auto;
+}
+
+#root:has(.analysis-results) .smiles-input-container {
+  width: min(1048px, 100% - 2 * var(--s-6));
+  margin: var(--s-5) auto var(--s-10);
+}
+
+/* ── Decorative 3D molecules ───────────────────────────────────────────── */
+.molecule-field {
+  /*
+   * Landing palette, scoped here so the real viewer keeps the standard atom colours:
+   * cool platinum carbon, rose oxygen, periwinkle nitrogen, pearl hydrogen.
+   */
+  --atom-c: #c2c8da;
+  --atom-o: #f07890;
+  --atom-n: #8fa4ff;
+  --atom-h: #f3f1fa;
+  --bond: #7d87a4;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/*
+ * Every slot is placed by its centre, as a fraction of the viewport, so the composition
+ * keeps its balance at any screen size. Layout: an even ring around the copy:
+ *
+ *        far(2)      backdrop(9)                    top band: 4
+ *   near(1)                          near(5)
+ *   mid(3)        [  copy + SMILES  ]   far(6)       sides: 2 (+ near/mid)
+ *   far(4)   backdrop(10)   far(8)      mid(7)       bottom band: 4
+ *
+ * Bright near/mid molecules stay at the edges; only faint far/backdrop ones come
+ * towards the centre, so nothing competes with the text.
+ *   --cx / --cy  centre of the slot (% of viewport)
+ *   --size       box size, scales with the viewport
+ *   --o          depth opacity (on the svg, so GSAP can own the slot's own opacity)
+ *   --glow       soft ambient light behind the molecule
+ */
+.molecule-field__item {
+  --size: 200px;
+  --cx: 50%;
+  --cy: 50%;
+  --o: 0.7;
+  --glow: rgb(184 166 244 / 0.14);
+  position: absolute;
+  left: calc(var(--cx) - var(--size) / 2);
+  top: calc(var(--cy) - var(--size) / 2);
+  width: var(--size);
+  height: var(--size);
+}
+
+.molecule-field__item::before {
+  content: '';
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--glow), transparent);
+}
+
+.molecule-field__item > svg {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  opacity: var(--o);
+}
+
+/* near layer: large, crisp, lit; the two upper corners */
+.molecule-field__item:nth-child(1) {
+  --size: clamp(190px, 17vw, 290px);
+  --cx: 10%;
+  --cy: 25%;
+  --o: 0.92;
+  --glow: rgb(184 166 244 / 0.16);
+}
+
+.molecule-field__item:nth-child(5) {
+  --size: clamp(180px, 16vw, 270px);
+  --cx: 89%;
+  --cy: 23%;
+  --o: 0.88;
+  --glow: rgb(143 168 255 / 0.15);
+}
+
+/* mid layer: left middle, bottom right (diagonal balance with the near pair) */
+.molecule-field__item:nth-child(3) {
+  --size: clamp(140px, 12.5vw, 210px);
+  --cx: 8%;
+  --cy: 61%;
+  --o: 0.7;
+  --glow: rgb(231 179 106 / 0.1);
+}
+
+.molecule-field__item:nth-child(7) {
+  --size: clamp(150px, 13vw, 220px);
+  --cx: 86%;
+  --cy: 81%;
+  --o: 0.68;
+  --glow: rgb(95 212 196 / 0.09);
+}
+
+/*
+ * far layer: small, dim, out of focus, and tinted towards periwinkle
+ * (atmospheric perspective: distant objects take on the ambient colour)
+ */
+.molecule-field__item:nth-child(-n + 8):nth-child(even) {
+  --atom-c: #a9b2de;
+  --atom-o: #c98aab;
+  --atom-n: #8d9cf0;
+  --atom-h: #d8dcf4;
+  --bond: #67719a;
+  --glow: transparent;
+  filter: blur(1.5px);
+}
+
+.molecule-field__item:nth-child(2) {
+  --size: clamp(85px, 7.5vw, 130px);
+  --cx: 33%;
+  --cy: 18%;
+  --o: 0.45;
+}
+
+.molecule-field__item:nth-child(4) {
+  --size: clamp(90px, 8vw, 140px);
+  --cx: 15%;
+  --cy: 87%;
+  --o: 0.42;
+}
+
+.molecule-field__item:nth-child(6) {
+  --size: clamp(80px, 7vw, 120px);
+  --cx: 94%;
+  --cy: 53%;
+  --o: 0.38;
+}
+
+.molecule-field__item:nth-child(8) {
+  --size: clamp(90px, 8vw, 135px);
+  --cx: 64%;
+  --cy: 88%;
+  --o: 0.42;
+}
+
+/*
+ * backdrop layer: two large, very faint molecules behind the centre column.
+ * Deep periwinkle monochrome + blur so they read as atmosphere, not objects.
+ */
+.molecule-field__item--backdrop {
+  --atom-c: #7f8cc8;
+  --atom-o: #9a86c4;
+  --atom-n: #7b8df0;
+  --atom-h: #a9b3e6;
+  --bond: #4f5a86;
+  --glow: transparent;
+  filter: blur(2.5px);
+}
+
+.molecule-field__item--backdrop:nth-child(9) {
+  --size: clamp(280px, 26vw, 440px);
+  --cx: 64%;
+  --cy: 24%;
+  --o: 0.14;
+}
+
+.molecule-field__item--backdrop:nth-child(10) {
+  --size: clamp(250px, 22vw, 380px);
+  --cx: 37%;
+  --cy: 86%;
+  --o: 0.12;
+}
+
+.molecule3d__bond line {
+  stroke: var(--bond);
+  stroke-linecap: round;
+}
+
+.molecule3d__halo {
+  stroke: none;
+}
+
+.molecule3d__halo[data-tone='warm'] {
+  fill: rgb(231 179 106 / 0.16);
+}
+
+.molecule3d__halo[data-tone='accent'] {
+  fill: rgb(184 166 244 / 0.18);
+}
+
+.molecule3d__outline {
+  fill: none;
+}
+
+.molecule3d__outline[data-tone='warm'],
+.molecule3d__pulse[data-tone='warm'] {
+  stroke: rgb(231 179 106 / 0.75);
+}
+
+.molecule3d__outline[data-tone='accent'],
+.molecule3d__pulse[data-tone='accent'] {
+  stroke: rgb(184 166 244 / 0.75);
+}
+
+.molecule3d__pulse {
+  fill: none;
+}
+
+/* narrower screens: drop the far layer first, then keep only the two near molecules + backdrop */
+@media (max-width: 1280px) {
+  .molecule-field__item:nth-child(-n + 8):nth-child(even) {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .molecule-field__item:nth-child(3),
+  .molecule-field__item:nth-child(7) {
+    display: none;
+  }
+
+  .molecule-field__item:nth-child(1),
+  .molecule-field__item:nth-child(5) {
+    --size: 150px;
+    --cy: 22%;
+    --o: 0.5;
+  }
+}
+
+/* below this the sides are too narrow to keep molecules clear of the copy */
+@media (max-width: 960px) {
+  .molecule-field {
+    display: none;
+  }
+}
+
+/* ── Results ───────────────────────────────────────────────────────────── */
+.analysis-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  width: min(1048px, 100% - 2 * var(--s-6));
+  margin: 0 auto;
+  padding-top: var(--s-8);
+}
+
+.analysis-hero {
+  padding: 0 var(--s-2) var(--s-3);
+}
+
+.analysis-hero .eyebrow {
+  display: block;
+  margin-bottom: var(--s-4);
+}
+
+.analysis-hero h2 {
+  font-size: clamp(28px, 3.4vw, 36px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.analysis-hero-subtitle {
+  margin-top: var(--s-3);
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* cards mount when the analysis resolves, replacing the loading placeholder: fade them in, staggered by row */
+.analysis-results .card:not(.molecule-overview--placeholder) {
+  animation: analysis-card-in 0.6s var(--ease-out) both;
+}
+
+.analysis-page-tier2 .card {
+  animation-delay: 0.08s;
+}
+
+.analysis-page-tier3 .card {
+  animation-delay: 0.16s;
+}
+
+@keyframes analysis-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.analysis-page-tier2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-5);
+}
+
+.analysis-page-tier2 > div {
+  display: flex;
+  min-width: 0;
+}
+
+.analysis-page-tier2 > div > .card {
+  flex: 1;
+}
+
+@media (max-width: 880px) {
+  .analysis-page-tier2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .landing-hero,
+  .smiles-input-container,
+  #root:has(.analysis-results) .smiles-input-container,
+  .analysis-results {
+    width: calc(100% - 2 * var(--s-4));
+  }
+}
