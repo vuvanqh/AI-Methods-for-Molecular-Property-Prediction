@@ -8,14 +8,16 @@ class GNNClient:
 
     async def get_prediction_and_attribution(self, smiles: str) -> dict:
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=settings.gnn_timeout_seconds) as client:
                 response = await client.post(self.url, json={"smiles": smiles})
         except httpx.RequestError as exc:
             raise ConnectionError("GNN service unavailable") from exc
 
         if response.status_code == 422:
             raise ValueError("The molecule could not be processed.")
-        response.raise_for_status()
+        if response.is_error:
+            # any other upstream failure (wrong URL, crash) is reported as "unavailable" (503), not a 500 traceback
+            raise ConnectionError(f"GNN service returned {response.status_code} for {self.url}")
 
         return response.json()
 
