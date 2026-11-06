@@ -1,19 +1,14 @@
 from rdkit import Chem, rdBase
-from rdkit.Chem import rdFingerprintGenerator
 from rdkit.Chem.MolStandardize import rdMolStandardize
 
-
-FINGERPRINT_RADIUS = 2
-FINGERPRINT_BITS = 2048
+from backend.app.src.rag.config import MORGAN_FINGERPRINT_SIZE as FINGERPRINT_BITS
+from backend.app.src.rag.morgan_fingerprint_helper import (
+    fingerprint_to_bitstring,
+    generate_morgan_fingerprint,
+)
 
 # ChEMBL triggers thousands of harmless sanitization warnings
 rdBase.DisableLog("rdApp.*")
-
-_morgan = rdFingerprintGenerator.GetMorganGenerator(
-    radius=FINGERPRINT_RADIUS, fpSize=FINGERPRINT_BITS
-)
-_largest_fragment = rdMolStandardize.LargestFragmentChooser()
-_uncharger = rdMolStandardize.Uncharger()
 
 
 def standardize_smiles(smiles: str) -> str | None:
@@ -21,19 +16,15 @@ def standardize_smiles(smiles: str) -> str | None:
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return None
-    try:
-        mol = rdMolStandardize.Cleanup(mol)
-        mol = _largest_fragment.choose(mol)
-        mol = _uncharger.uncharge(mol)
-    except (
-        Exception
-    ):  # RDKit raises assorted sanitization errors on exotic structures; skip them
-        return None
-    return Chem.MolToSmiles(mol)
+    
+    # fingerprints are to serve as a structural similarity indicator so comparing parent molecular structures should be sufficient
+    mol = rdMolStandardize.Cleanup(mol)
+
+    return Chem.MolToSmiles(mol, canonical=True, isomericSmiles=True)
 
 
 def morgan_fingerprint(smiles: str) -> str:
-    return _morgan.GetFingerprint(Chem.MolFromSmiles(smiles)).ToBitString()
+    return fingerprint_to_bitstring(generate_morgan_fingerprint(smiles))
 
 
 if __name__ == "__main__":

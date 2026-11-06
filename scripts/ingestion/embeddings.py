@@ -13,9 +13,9 @@ def _model(version: str) -> UniMolRepr:
 
 
 def unimol_embeddings(smiles: list[str], version: str = "unimolv1") -> np.ndarray:
-    """
+    '''
     Shape (len(smiles), 512) for unimolv1.
-    """
+    '''
     return np.asarray(_model(version).get_repr(smiles), dtype=np.float32)
 
 
