@@ -5,7 +5,7 @@ from sqlalchemy import UUID, Text, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from typing import TYPE_CHECKING
-from backend.app.src.db.models.base import Base
+from .base import Base
 import uuid
 
 if TYPE_CHECKING:
@@ -40,7 +40,7 @@ class MoleculeEmbedding(Base):
         nullable=False,
     )
 
-    molecule: Mapped["Molecule"] = relationship(
+    molecule: Mapped[Molecule] = relationship(
         back_populates="molecule_embedding",
     )
 
