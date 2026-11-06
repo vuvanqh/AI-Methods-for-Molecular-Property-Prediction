@@ -44,9 +44,11 @@ class MoleculeEmbedding(Base):
         back_populates="molecule_embedding",
     )
 
-    __table_args__ = UniqueConstraint(
-        "molecule_id",
-        "embedding_model",
-        "embedding_model_version",
-        name="unique_molecule_embedding",
+    __table_args__ = (
+        UniqueConstraint(
+            "molecule_id",
+            "embedding_model",
+            "embedding_model_version",
+            name="unique_molecule_embedding",
+        ),
     )

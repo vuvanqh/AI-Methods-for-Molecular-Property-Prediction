@@ -24,7 +24,7 @@ class Molecule(Base):
     )
 
     morgan_fingerprint: Mapped[str] = mapped_column(
-        BIT(1024),
+        BIT(2048),  # Morgan, radius 2; see scripts/fingerprints.py
         nullable=False,
     )
 
