@@ -5,7 +5,12 @@ from sqlalchemy import UUID, Text
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 import uuid
 
-from backend.app.src.db.models.base import Base
+from .base import Base
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .molecule_embedding import MoleculeEmbedding
+    from .molecule_source import MoleculeSource
 
 
 class Molecule(Base):
@@ -24,16 +29,16 @@ class Molecule(Base):
     )
 
     morgan_fingerprint: Mapped[str] = mapped_column(
-        BIT(1024),
+        BIT(2048),
         nullable=False,
     )
 
-    molecule_embedding: Mapped[list["MoleculeEmbedding"]] = relationship(
+    molecule_embedding: Mapped[list[MoleculeEmbedding]] = relationship(
         back_populates="molecule",
         cascade="all, delete-orphan",
     )
 
-    molecule_sources: Mapped[list["MoleculeSource"]] = relationship(
+    molecule_sources: Mapped[list[MoleculeSource]] = relationship(
         back_populates="molecule",
         cascade="all, delete-orphan",
     )
