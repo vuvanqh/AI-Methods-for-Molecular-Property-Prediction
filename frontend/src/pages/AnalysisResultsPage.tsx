@@ -4,8 +4,9 @@ import { ScientificInterpretationCard } from "../features/scientific-interpretat
 import { SimilarMoleculesCard } from "../features/similar-molecules/SimilarMoleculesCard";
 import { MoleculeOverviewCard } from "../features/molecule-overview/MoleculeOverviewCard";
 import { lazy, Suspense, useState } from "react";
-import { Await, useAsyncError, useLoaderData } from "react-router-dom";
-import type { analysisLoader } from "../api/analysis";
+import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { analysisQuery } from "../api/analysis";
 import type { PredictionResponse } from "../types/molecule";
 import { toPropertyPredictions, toScientificInterpretation, toSimilarMolecules } from "../api/mappers";
 import "../features/molecule-overview/MoleculeOverview.css";
@@ -13,18 +14,17 @@ import "../features/molecule-overview/MoleculeOverview.css";
 const MoleculeViewer = lazy(() => import("../features/molecule-overview/MoleculeViewer"));
 
 export function AnalysisResultsPage() {
-    const { analysis } = useLoaderData<typeof analysisLoader>()
+    const { smiles = "" } = useParams()
+    const { data, error, isPending, isError } = useQuery(analysisQuery(smiles))
 
     return <div className="analysis-results">
         <header className="analysis-hero">
             <h2>Understand molecules <span className="gradient-text">beyond the structure.</span></h2>
-            <Metadata className="analysis-hero-subtitle">3D molecular visualization, prredicted properties, and scientific interpretation in one view.</Metadata>
+            <Metadata className="analysis-hero-subtitle">3D molecular visualization, predicted properties, and scientific interpretation in one view.</Metadata>
         </header>
-         <Suspense fallback={<p className="molecule-overview molecule-overview--placeholder card" aria-busy="true">Loading molecular structure…</p>}>
-            <Await resolve={analysis} errorElement={<AnalysisError/>}>
-                {(data) => <AnalysisResults data={data}/>}
-            </Await>
-         </Suspense>
+        {isPending ? <p className="molecule-overview molecule-overview--placeholder card" aria-busy="true">Loading molecular structure…</p>
+            : isError ? <p className="molecule-overview molecule-overview--placeholder card" role="alert">{error.message}</p>
+            : <AnalysisResults data={data}/>}
     </div>
 }
 
@@ -33,7 +33,7 @@ function AnalysisResults({ data }: { data: PredictionResponse }) {
     const [selectedProperty, setSelectedProperty] = useState<string | null>(null)
     const toggleProperty = (name: string) => setSelectedProperty(current => current === name ? null : name)
 
-    return <>
+   return <>
         <MoleculeOverviewCard molecule={data.molecule}>
             <Suspense fallback={null}>
                 <MoleculeViewer
@@ -46,6 +46,7 @@ function AnalysisResults({ data }: { data: PredictionResponse }) {
         <div className="analysis-page-tier2">
             <div>
                 <PropertyPredictionCard
+                    key={data.molecule.smiles}
                     propertyResult={toPropertyPredictions(data.properties_xai_data)}
                     selectedProperty={selectedProperty}
                     onPropertySelect={toggleProperty}/>
@@ -59,9 +60,4 @@ function AnalysisResults({ data }: { data: PredictionResponse }) {
             <ScientificInterpretationCard scientificInterpretation={toScientificInterpretation(data.llm_summary, data.similar_compounds)}/>
         </div>
     </>
-}
-
-function AnalysisError() {
-    const error = useAsyncError() as Error
-    return <p className="molecule-overview molecule-overview--placeholder card" role="alert">{error.message}</p>
 }
