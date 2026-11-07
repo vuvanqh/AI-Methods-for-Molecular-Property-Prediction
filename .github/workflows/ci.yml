@@ -10,6 +10,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# least privilege: every job only checks out code and runs lint/tests/builds (artifact upload needs no token scope)
+permissions:
+  contents: read
+
 jobs:
   backend-ci:
     name: "Backend CI (Python ${{ matrix.python-version }})"
@@ -92,11 +96,11 @@ jobs:
             echo "No package.json found in frontend/. Skipping frontend CI."
           fi
 
-      - name: "Set up Node.js 20"
+      - name: "Set up Node.js 24"  # vitest 5 / jsdom need Node >= 22
         if: steps.check-frontend.outputs.has_code == 'true'
         uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: ${{ hashFiles('frontend/package-lock.json') != '' && 'npm' || '' }}
           cache-dependency-path: frontend/package-lock.json
 
@@ -109,9 +113,44 @@ jobs:
             npm install
           fi
 
-      - name: "Run lint and build"
+      - name: "Run lint, tests with coverage, and build"
         if: steps.check-frontend.outputs.has_code == 'true'
         run: |
           npm run lint --if-present
-          npm test --if-present -- --run
+          npm run test:coverage
           npm run build --if-present
+
+  frontend-e2e:
+    name: "Frontend E2E (Playwright)"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v7
+
+      - name: "Set up Node.js 24"
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: "Install dependencies"
+        run: npm ci
+
+      - name: "Install Chromium"
+        run: npx playwright install --with-deps chromium
+
+      - name: "Run E2E tests (mocked API)"
+        run: npm run test:e2e
+
+      - name: "Upload Playwright report"
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
