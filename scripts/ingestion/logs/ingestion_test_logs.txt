@@ -1,0 +1,193 @@
+ uv run python -m scripts.ingest
+22:35:07 INFO ingesting up to 10000 ChEMBL molecules, 1000 per page, into postgresql+psycopg://postgres:***@127.0.0.1:5433/molecules (embeddings: unimol/unimolv1)
+22:35:09 INFO Duplicate word found when loading Dictionary: '[PAD]', index is 2.
+22:35:09 INFO Duplicate word found when loading Dictionary: '[CLS]', index is 0.
+22:35:09 INFO Duplicate word found when loading Dictionary: '[SEP]', index is 3.
+22:35:09 INFO Duplicate word found when loading Dictionary: '[UNK]', index is 1.
+2026-11-06 22:35:09 | unimol_tools\models\unimol.py | 169 | INFO | Uni-Mol Tools | Loading pretrained weights from C:\Users\qvuva\Desktop\Bachelors\Final Project\AI-Methods-for-Molecular-Property-Prediction\.venv\Lib\site-packages\unimol_tools\weights\mol_pre_all_h_220816.pt
+22:35:09 INFO Loading pretrained weights from C:\Users\qvuva\Desktop\Bachelors\Final Project\AI-Methods-for-Molecular-Property-Prediction\.venv\Lib\site-packages\unimol_tools\weights\mol_pre_all_h_220816.pt
+22:35:10 INFO Duplicate word found when loading Dictionary: '[PAD]', index is 2.
+22:35:10 INFO Duplicate word found when loading Dictionary: '[CLS]', index is 0.
+22:35:10 INFO Duplicate word found when loading Dictionary: '[SEP]', index is 3.
+22:35:10 INFO Duplicate word found when loading Dictionary: '[UNK]', index is 1.
+2026-11-06 22:35:10 | unimol_tools\data\conformer.py | 185 | INFO | Uni-Mol Tools | Start generating conformers...
+22:35:10 INFO Start generating conformers...
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 955/955 [00:56<00:00, 16.95it/s]
+2026-11-06 22:36:06 | unimol_tools\data\conformer.py | 199 | INFO | Uni-Mol Tools | Succeeded in generating conformers for 100.00% of molecules.
+22:36:06 INFO Succeeded in generating conformers for 100.00% of molecules.
+2026-11-06 22:36:06 | unimol_tools\data\conformer.py | 216 | INFO | Uni-Mol Tools | Succeeded in generating 3d conformers for 99.48% of molecules.
+22:36:06 INFO Succeeded in generating 3d conformers for 99.48% of molecules.
+2026-11-06 22:36:06 | unimol_tools\data\conformer.py | 225 | INFO | Uni-Mol Tools | Failed 3d conformers indices: [87, 494, 506, 589, 817]
+22:36:06 INFO Failed 3d conformers indices: [87, 494, 506, 589, 817]
+2026-11-06 22:36:06 | unimol_tools\tasks\trainer.py | 78 | INFO | Uni-Mol Tools | Number of GPUs available: 1
+22:36:06 INFO Number of GPUs available: 1
+2026-11-06 22:36:06 | unimol_tools\tasks\trainer.py | 98 | INFO | Uni-Mol Tools | Using single GPU.
+22:36:06 INFO Using single GPU.
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 30/30 [00:03<00:00,  8.22it/s]
+22:36:10 INFO page 1 (offset 0): 1000 fetched, 0 unparseable, 955 new molecules, 955 embedded | fetch 1.0s, prepare 1.3s, embed 60.8s, write 0.4s
+22:36:13 INFO Duplicate word found when loading Dictionary: '[PAD]', index is 2.
+22:36:13 INFO Duplicate word found when loading Dictionary: '[CLS]', index is 0.
+22:36:13 INFO Duplicate word found when loading Dictionary: '[SEP]', index is 3.
+22:36:13 INFO Duplicate word found when loading Dictionary: '[UNK]', index is 1.
+2026-11-06 22:36:13 | unimol_tools\data\conformer.py | 185 | INFO | Uni-Mol Tools | Start generating conformers...
+22:36:13 INFO Start generating conformers...
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1000/1000 [00:58<00:00, 17.04it/s]
+2026-11-06 22:37:11 | unimol_tools\data\conformer.py | 199 | INFO | Uni-Mol Tools | Succeeded in generating conformers for 100.00% of molecules.
+22:37:11 INFO Succeeded in generating conformers for 100.00% of molecules.
+2026-11-06 22:37:11 | unimol_tools\data\conformer.py | 216 | INFO | Uni-Mol Tools | Succeeded in generating 3d conformers for 100.00% of molecules.
+22:37:11 INFO Succeeded in generating 3d conformers for 100.00% of molecules.
+2026-11-06 22:37:11 | unimol_tools\tasks\trainer.py | 78 | INFO | Uni-Mol Tools | Number of GPUs available: 1
+22:37:11 INFO Number of GPUs available: 1
+2026-11-06 22:37:11 | unimol_tools\tasks\trainer.py | 98 | INFO | Uni-Mol Tools | Using single GPU.
+22:37:11 INFO Using single GPU.
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 32/32 [00:01<00:00, 18.85it/s]
+22:37:13 INFO page 2 (offset 1000): 1000 fetched, 0 unparseable, 1000 new molecules, 1000 embedded | fetch 0.9s, prepare 1.1s, embed 60.7s, write 0.4s
+22:37:16 INFO Duplicate word found when loading Dictionary: '[PAD]', index is 2.
+22:37:16 INFO Duplicate word found when loading Dictionary: '[CLS]', index is 0.
+22:37:16 INFO Duplicate word found when loading Dictionary: '[SEP]', index is 3.
+22:37:16 INFO Duplicate word found when loading Dictionary: '[UNK]', index is 1.
+2026-11-06 22:37:16 | unimol_tools\data\conformer.py | 185 | INFO | Uni-Mol Tools | Start generating conformers...
+22:37:16 INFO Start generating conformers...
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1000/1000 [00:50<00:00, 19.91it/s]
+2026-11-06 22:38:06 | unimol_tools\data\conformer.py | 199 | INFO | Uni-Mol Tools | Succeeded in generating conformers for 100.00% of molecules.
+22:38:06 INFO Succeeded in generating conformers for 100.00% of molecules.
+2026-11-06 22:38:06 | unimol_tools\data\conformer.py | 216 | INFO | Uni-Mol Tools | Succeeded in generating 3d conformers for 100.00% of molecules.
+22:38:06 INFO Succeeded in generating 3d conformers for 100.00% of molecules.
+2026-11-06 22:38:06 | unimol_tools\tasks\trainer.py | 78 | INFO | Uni-Mol Tools | Number of GPUs available: 1
+22:38:06 INFO Number of GPUs available: 1
+2026-11-06 22:38:06 | unimol_tools\tasks\trainer.py | 98 | INFO | Uni-Mol Tools | Using single GPU.
+22:38:06 INFO Using single GPU.
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 32/32 [00:02<00:00, 13.17it/s]
+22:38:09 INFO page 3 (offset 2000): 1000 fetched, 0 unparseable, 1000 new molecules, 1000 embedded | fetch 0.8s, prepare 1.2s, embed 53.0s, write 0.5s
+22:38:11 INFO Duplicate word found when loading Dictionary: '[PAD]', index is 2.
+22:38:11 INFO Duplicate word found when loading Dictionary: '[CLS]', index is 0.
+22:38:11 INFO Duplicate word found when loading Dictionary: '[SEP]', index is 3.
+22:38:11 INFO Duplicate word found when loading Dictionary: '[UNK]', index is 1.
+2026-11-06 22:38:11 | unimol_tools\data\conformer.py | 185 | INFO | Uni-Mol Tools | Start generating conformers...
+22:38:11 INFO Start generating conformers...
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 998/998 [01:49<00:00,  9.14it/s]
+2026-11-06 22:40:00 | unimol_tools\data\conformer.py | 199 | INFO | Uni-Mol Tools | Succeeded in generating conformers for 100.00% of molecules.
+22:40:00 INFO Succeeded in generating conformers for 100.00% of molecules.
+2026-11-06 22:40:00 | unimol_tools\data\conformer.py | 216 | INFO | Uni-Mol Tools | Succeeded in generating 3d conformers for 99.50% of molecules.
+22:40:00 INFO Succeeded in generating 3d conformers for 99.50% of molecules.
+2026-11-06 22:40:00 | unimol_tools\data\conformer.py | 225 | INFO | Uni-Mol Tools | Failed 3d conformers indices: [848, 939, 940, 958, 959]
+22:40:00 INFO Failed 3d conformers indices: [848, 939, 940, 958, 959]
+2026-11-06 22:40:00 | unimol_tools\tasks\trainer.py | 78 | INFO | Uni-Mol Tools | Number of GPUs available: 1
+22:40:00 INFO Number of GPUs available: 1
+2026-11-06 22:40:00 | unimol_tools\tasks\trainer.py | 98 | INFO | Uni-Mol Tools | Using single GPU.
+22:40:00 INFO Using single GPU.
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 32/32 [00:03<00:00, 10.28it/s]
+22:40:04 INFO page 4 (offset 3000): 1000 fetched, 0 unparseable, 998 new molecules, 998 embedded | fetch 0.7s, prepare 1.3s, embed 112.7s, write 0.3s
+22:40:08 INFO Duplicate word found when loading Dictionary: '[PAD]', index is 2.
+22:40:08 INFO Duplicate word found when loading Dictionary: '[CLS]', index is 0.
+22:40:08 INFO Duplicate word found when loading Dictionary: '[SEP]', index is 3.
+22:40:08 INFO Duplicate word found when loading Dictionary: '[UNK]', index is 1.
+2026-11-06 22:40:08 | unimol_tools\data\conformer.py | 185 | INFO | Uni-Mol Tools | Start generating conformers...
+22:40:08 INFO Start generating conformers...
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 999/999 [01:43<00:00,  9.62it/s]
+2026-11-06 22:41:52 | unimol_tools\data\conformer.py | 199 | INFO | Uni-Mol Tools | Succeeded in generating conformers for 100.00% of molecules.
+22:41:52 INFO Succeeded in generating conformers for 100.00% of molecules.
+2026-11-06 22:41:52 | unimol_tools\data\conformer.py | 216 | INFO | Uni-Mol Tools | Succeeded in generating 3d conformers for 99.20% of molecules.
+22:41:52 INFO Succeeded in generating 3d conformers for 99.20% of molecules.
+2026-11-06 22:41:52 | unimol_tools\data\conformer.py | 225 | INFO | Uni-Mol Tools | Failed 3d conformers indices: [8, 75, 77, 104, 119, 130, 136, 153]
+22:41:52 INFO Failed 3d conformers indices: [8, 75, 77, 104, 119, 130, 136, 153]
+2026-11-06 22:41:52 | unimol_tools\tasks\trainer.py | 78 | INFO | Uni-Mol Tools | Number of GPUs available: 1
+22:41:52 INFO Number of GPUs available: 1
+2026-11-06 22:41:52 | unimol_tools\tasks\trainer.py | 98 | INFO | Uni-Mol Tools | Using single GPU.
+22:41:52 INFO Using single GPU.
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 32/32 [00:02<00:00, 12.00it/s]
+22:41:55 INFO page 5 (offset 4000): 1000 fetched, 0 unparseable, 999 new molecules, 999 embedded | fetch 2.6s, prepare 1.2s, embed 107.0s, write 0.3s
+22:42:01 INFO Duplicate word found when loading Dictionary: '[PAD]', index is 2.
+22:42:01 INFO Duplicate word found when loading Dictionary: '[CLS]', index is 0.
+22:42:01 INFO Duplicate word found when loading Dictionary: '[SEP]', index is 3.
+22:42:01 INFO Duplicate word found when loading Dictionary: '[UNK]', index is 1.
+2026-11-06 22:42:01 | unimol_tools\data\conformer.py | 185 | INFO | Uni-Mol Tools | Start generating conformers...
+22:42:01 INFO Start generating conformers...
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1000/1000 [01:26<00:00, 11.51it/s]
+2026-11-06 22:43:28 | unimol_tools\data\conformer.py | 199 | INFO | Uni-Mol Tools | Succeeded in generating conformers for 100.00% of molecules.
+22:43:28 INFO Succeeded in generating conformers for 100.00% of molecules.
+2026-11-06 22:43:28 | unimol_tools\data\conformer.py | 216 | INFO | Uni-Mol Tools | Succeeded in generating 3d conformers for 98.90% of molecules.
+22:43:28 INFO Succeeded in generating 3d conformers for 98.90% of molecules.
+2026-11-06 22:43:28 | unimol_tools\data\conformer.py | 225 | INFO | Uni-Mol Tools | Failed 3d conformers indices: [55, 171, 198, 211, 229, 271, 316, 333, 400, 409, 445]
+22:43:28 INFO Failed 3d conformers indices: [55, 171, 198, 211, 229, 271, 316, 333, 400, 409, 445]
+2026-11-06 22:43:28 | unimol_tools\tasks\trainer.py | 78 | INFO | Uni-Mol Tools | Number of GPUs available: 1
+22:43:28 INFO Number of GPUs available: 1
+2026-11-06 22:43:28 | unimol_tools\tasks\trainer.py | 98 | INFO | Uni-Mol Tools | Using single GPU.
+22:43:28 INFO Using single GPU.
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 32/32 [00:03<00:00,  8.92it/s]
+22:43:32 INFO page 6 (offset 5000): 1000 fetched, 0 unparseable, 1000 new molecules, 1000 embedded | fetch 4.3s, prepare 1.3s, embed 90.9s, write 0.3s
+22:43:34 INFO Duplicate word found when loading Dictionary: '[PAD]', index is 2.
+22:43:34 INFO Duplicate word found when loading Dictionary: '[CLS]', index is 0.
+22:43:34 INFO Duplicate word found when loading Dictionary: '[SEP]', index is 3.
+22:43:34 INFO Duplicate word found when loading Dictionary: '[UNK]', index is 1.
+2026-11-06 22:43:34 | unimol_tools\data\conformer.py | 185 | INFO | Uni-Mol Tools | Start generating conformers...
+22:43:34 INFO Start generating conformers...
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 999/999 [01:22<00:00, 12.06it/s]
+2026-11-06 22:44:57 | unimol_tools\data\conformer.py | 199 | INFO | Uni-Mol Tools | Succeeded in generating conformers for 100.00% of molecules.
+22:44:57 INFO Succeeded in generating conformers for 100.00% of molecules.
+2026-11-06 22:44:57 | unimol_tools\data\conformer.py | 216 | INFO | Uni-Mol Tools | Succeeded in generating 3d conformers for 99.90% of molecules.
+22:44:57 INFO Succeeded in generating 3d conformers for 99.90% of molecules.
+2026-11-06 22:44:57 | unimol_tools\data\conformer.py | 225 | INFO | Uni-Mol Tools | Failed 3d conformers indices: [963]
+22:44:57 INFO Failed 3d conformers indices: [963]
+2026-11-06 22:44:57 | unimol_tools\tasks\trainer.py | 78 | INFO | Uni-Mol Tools | Number of GPUs available: 1
+22:44:57 INFO Number of GPUs available: 1
+2026-11-06 22:44:57 | unimol_tools\tasks\trainer.py | 98 | INFO | Uni-Mol Tools | Using single GPU.
+22:44:57 INFO Using single GPU.
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 32/32 [00:02<00:00, 13.80it/s]
+22:45:00 INFO page 7 (offset 6000): 1000 fetched, 0 unparseable, 999 new molecules, 999 embedded | fetch 0.9s, prepare 1.2s, embed 85.6s, write 0.4s
+22:45:05 INFO Duplicate word found when loading Dictionary: '[PAD]', index is 2.
+22:45:05 INFO Duplicate word found when loading Dictionary: '[CLS]', index is 0.
+22:45:05 INFO Duplicate word found when loading Dictionary: '[SEP]', index is 3.
+22:45:05 INFO Duplicate word found when loading Dictionary: '[UNK]', index is 1.
+2026-11-06 22:45:05 | unimol_tools\data\conformer.py | 185 | INFO | Uni-Mol Tools | Start generating conformers...
+22:45:05 INFO Start generating conformers...
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 998/998 [01:40<00:00,  9.95it/s]
+2026-11-06 22:46:46 | unimol_tools\data\conformer.py | 199 | INFO | Uni-Mol Tools | Succeeded in generating conformers for 100.00% of molecules.
+22:46:46 INFO Succeeded in generating conformers for 100.00% of molecules.
+2026-11-06 22:46:46 | unimol_tools\data\conformer.py | 216 | INFO | Uni-Mol Tools | Succeeded in generating 3d conformers for 99.40% of molecules.
+22:46:46 INFO Succeeded in generating 3d conformers for 99.40% of molecules.
+2026-11-06 22:46:46 | unimol_tools\data\conformer.py | 225 | INFO | Uni-Mol Tools | Failed 3d conformers indices: [113, 210, 211, 364, 489, 490]
+22:46:46 INFO Failed 3d conformers indices: [113, 210, 211, 364, 489, 490]
+2026-11-06 22:46:46 | unimol_tools\tasks\trainer.py | 78 | INFO | Uni-Mol Tools | Number of GPUs available: 1
+22:46:46 INFO Number of GPUs available: 1
+2026-11-06 22:46:46 | unimol_tools\tasks\trainer.py | 98 | INFO | Uni-Mol Tools | Using single GPU.
+22:46:46 INFO Using single GPU.
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 32/32 [00:02<00:00, 12.59it/s]
+22:46:48 INFO page 8 (offset 7000): 1000 fetched, 0 unparseable, 998 new molecules, 998 embedded | fetch 1.3s, prepare 3.0s, embed 103.9s, write 0.5s
+22:46:52 INFO Duplicate word found when loading Dictionary: '[PAD]', index is 2.
+22:46:52 INFO Duplicate word found when loading Dictionary: '[CLS]', index is 0.
+22:46:52 INFO Duplicate word found when loading Dictionary: '[SEP]', index is 3.
+22:46:52 INFO Duplicate word found when loading Dictionary: '[UNK]', index is 1.
+2026-11-06 22:46:52 | unimol_tools\data\conformer.py | 185 | INFO | Uni-Mol Tools | Start generating conformers...
+22:46:52 INFO Start generating conformers...
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 999/999 [00:49<00:00, 20.00it/s]
+2026-11-06 22:47:42 | unimol_tools\data\conformer.py | 199 | INFO | Uni-Mol Tools | Succeeded in generating conformers for 100.00% of molecules.
+22:47:42 INFO Succeeded in generating conformers for 100.00% of molecules.
+2026-11-06 22:47:42 | unimol_tools\data\conformer.py | 216 | INFO | Uni-Mol Tools | Succeeded in generating 3d conformers for 100.00% of molecules.
+22:47:42 INFO Succeeded in generating 3d conformers for 100.00% of molecules.
+2026-11-06 22:47:42 | unimol_tools\tasks\trainer.py | 78 | INFO | Uni-Mol Tools | Number of GPUs available: 1
+22:47:42 INFO Number of GPUs available: 1
+2026-11-06 22:47:42 | unimol_tools\tasks\trainer.py | 98 | INFO | Uni-Mol Tools | Using single GPU.
+22:47:42 INFO Using single GPU.
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 32/32 [00:02<00:00, 14.45it/s]
+22:47:45 INFO page 9 (offset 8000): 1000 fetched, 0 unparseable, 999 new molecules, 999 embedded | fetch 2.4s, prepare 1.1s, embed 52.5s, write 0.4s
+22:47:47 INFO Duplicate word found when loading Dictionary: '[PAD]', index is 2.
+22:47:47 INFO Duplicate word found when loading Dictionary: '[CLS]', index is 0.
+22:47:47 INFO Duplicate word found when loading Dictionary: '[SEP]', index is 3.
+22:47:47 INFO Duplicate word found when loading Dictionary: '[UNK]', index is 1.
+2026-11-06 22:47:47 | unimol_tools\data\conformer.py | 185 | INFO | Uni-Mol Tools | Start generating conformers...
+22:47:47 INFO Start generating conformers...
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 996/996 [00:52<00:00, 18.81it/s]
+2026-11-06 22:48:40 | unimol_tools\data\conformer.py | 199 | INFO | Uni-Mol Tools | Succeeded in generating conformers for 100.00% of molecules.
+22:48:40 INFO Succeeded in generating conformers for 100.00% of molecules.
+2026-11-06 22:48:40 | unimol_tools\data\conformer.py | 216 | INFO | Uni-Mol Tools | Succeeded in generating 3d conformers for 99.80% of molecules.
+22:48:40 INFO Succeeded in generating 3d conformers for 99.80% of molecules.
+2026-11-06 22:48:40 | unimol_tools\data\conformer.py | 225 | INFO | Uni-Mol Tools | Failed 3d conformers indices: [281, 282]
+22:48:40 INFO Failed 3d conformers indices: [281, 282]
+2026-11-06 22:48:40 | unimol_tools\tasks\trainer.py | 78 | INFO | Uni-Mol Tools | Number of GPUs available: 1
+22:48:40 INFO Number of GPUs available: 1
+2026-11-06 22:48:40 | unimol_tools\tasks\trainer.py | 98 | INFO | Uni-Mol Tools | Using single GPU.
+22:48:40 INFO Using single GPU.
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 32/32 [00:02<00:00, 12.66it/s]
+22:48:43 INFO page 10 (offset 9000): 1000 fetched, 0 unparseable, 996 new molecules, 996 embedded | fetch 0.8s, prepare 1.1s, embed 55.9s, write 0.3s
+22:48:43 INFO done in 816.0s: 10000 fetched, 0 unparseable, 9944 new molecules, 9944 embedded

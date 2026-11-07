@@ -34,7 +34,7 @@ def get_canonical_smiles(smiles):
     params = Chem.SmilesWriteParams()
 
     params.canonical = True
-    params.isomericSmiles = True
+    params.doIsomericSmiles = True
 
     return Chem.MolToSmiles(mol, params)
 

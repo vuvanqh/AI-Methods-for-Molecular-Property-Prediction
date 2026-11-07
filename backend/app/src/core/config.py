@@ -1,4 +1,8 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+REPO_ROOT_ENV = Path(__file__).resolve().parents[4] / ".env"
 
 
 class Settings(BaseSettings):
@@ -11,8 +15,10 @@ class Settings(BaseSettings):
     llm_timeout_seconds = 300
     
     gnn_timeout_seconds: float = 60.0
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
-    
+    # repo-root .env works from any working directory; a .env in the working directory still overrides it
+    model_config = SettingsConfigDict(
+        env_file=(REPO_ROOT_ENV, ".env"), env_file_encoding="utf-8", extra="ignore"
+    )
 
 
 settings = Settings()

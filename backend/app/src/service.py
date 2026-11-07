@@ -1,8 +1,8 @@
 from .descriptors import describe_molecule
 from .gnn_client import gnn_client
 from .rag.retrieval import retrieve_similar_molecules_with_sources
-from .rag.config import RAG_TOP_K
-from sqlachemy.orm import Session
+from .rag.config import RAG_TOP_K, SOURCE_URL_TEMPLATES
+from sqlalchemy.orm import Session
 
 async def predict_properties(smiles: str, db: Session) -> dict:
     molecule = describe_molecule(smiles)  # rejects invalid SMILES before the expensive GNN call
@@ -15,7 +15,8 @@ async def predict_properties(smiles: str, db: Session) -> dict:
             "standardized_smiles": molecule.standardized_smiles,
             "similarity_score": similarity_score,
             "sources": [
-                source.source_url for source in molecule.molecule_sources
+                SOURCE_URL_TEMPLATES[source.provider].format(source.source_identifier)
+                for source in molecule.molecule_sources
             ],
         }
         for molecule, similarity_score in similar_compouds_results
