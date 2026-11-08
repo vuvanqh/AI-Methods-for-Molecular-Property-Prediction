@@ -24,18 +24,20 @@ app_router = APIRouter()
         },
     },
 )
-async def predict_properties_endpoint(request: InferenceRequest, db: Session = Depends(get_db)):
+async def predict_properties_endpoint(
+    request: InferenceRequest, db: Session = Depends(get_db)
+):
     try:
         result = await predict_properties(request.smiles, db)
         return result
 
-    except ValueError as exc:
+    except ValueError as _:
         return JSONResponse(
             status_code=422,
             content={"message": "The molecule could not be processed."},
         )
 
-    except ConnectionError as exc:
+    except ConnectionError as _:
         return JSONResponse(
             status_code=503,
             content={"message": "GNN service unavailable."},
