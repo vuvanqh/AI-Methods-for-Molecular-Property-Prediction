@@ -47,7 +47,7 @@ async def prediction_and_attribution_endpoint(request: Request, payload: Inferen
             logger.info("Molecule validation error: %s", exc)
             return JSONResponse(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                content={"message": str(exc)},
+                content={"message": "Invalid molecular input."},
             )
 
         except (ModelInferenceError, RuntimeError) as exc:
