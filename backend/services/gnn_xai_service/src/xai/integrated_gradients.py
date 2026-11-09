@@ -4,12 +4,14 @@ from ..exceptions import ModelInferenceError
 
 
 class IntegratedGradientsExplainer:
+    """Computes atom-level Integrated Gradients attributions over Chemprop message-passing embeddings."""
 
     def __init__(
         self,
         predictor,
         steps: int = 100
     ):
+        """Store the Chemprop predictor wrapper and number of Riemann interpolation steps."""
         self.predictor = predictor
         self.steps = steps
 

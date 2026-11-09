@@ -1,6 +1,7 @@
+"""Service configuration constants: target endpoints (Tox21, CYP450, hERG), device, threshold, and IG steps."""
 import torch
 
-#define all of the prediction properties
+# Prediction target groups
 
 TOX_21 = [
     "NR-AR",

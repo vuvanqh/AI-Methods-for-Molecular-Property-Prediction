@@ -7,9 +7,10 @@ from .mol_block_generation import mol_block_generation
 from .exceptions import MoleculeValidationError, ModelInferenceError
 
 class MolecularInferenceService:
+    """Orchestrates SMILES validation, Chemprop GNN prediction, Integrated Gradients XAI, and 3D MolBlock generation."""
 
     def __init__(self):
-        # Initialize the GNN and XAI once.
+        """Initialize the Chemprop predictor and Integrated Gradients explainer once at startup."""
         self.predictor = Chemprop(TASKS_NUMBER, DEVICE, BINARY_PREDICTION_THRESHOLD)
 
         self.explainer = IntegratedGradientsExplainer(
@@ -17,12 +18,15 @@ class MolecularInferenceService:
             steps=IG_STEPS,
         )
 
-    
     def predict_and_explain(
         self,
         smiles: str
     ):
-        # 1. Validate smiles input
+        """
+        Validate a SMILES string, run multi-task GNN prediction and atom-level IG attribution,
+        and generate an index-aligned MolBlock for 3Dmol.js visualization.
+        """
+        # 1. Validate SMILES input
         if not smiles or not isinstance(smiles, str) or not smiles.strip():
             raise MoleculeValidationError("SMILES must not be empty.")
         
@@ -34,6 +38,13 @@ class MolecularInferenceService:
         num_atoms_without_h = mol.GetNumAtoms()
         if num_atoms_without_h == 0:
             raise MoleculeValidationError("The molecule must contain at least one atom.")
+
+        # Normalize to canonical SMILES so chiral tags (@/@@) and atom indices are traversal-independent
+        canonical_smiles = Chem.MolToSmiles(mol, canonical=True)
+        mol = Chem.MolFromSmiles(canonical_smiles)
+        if mol is None:
+            raise MoleculeValidationError("RDKit could not re-parse the canonicalized SMILES.")
+        num_atoms_without_h = mol.GetNumAtoms()
 
         # 2. Run GNN model prediction
         result = self.predictor.predict(mol)
@@ -121,7 +132,8 @@ class MolecularInferenceService:
         }
 
     def validate_mol_atomic_indices(self, mol, num_atoms_without_h, mol_with_h, num_atoms_with_h):
-        # Check invariant: verify heavy atom indices and atomic symbols match exactly between mol and mol_with_h
+        """Verify that heavy atoms remain at indices 0 .. K-1 and appended atoms at K .. N-1 are all hydrogens."""
+        # Verify heavy-atom indices and atomic numbers match between `mol` and `mol_with_h`
         for i in range(num_atoms_without_h):
             heavy_atom = mol.GetAtomWithIdx(i)
             atom_in_h_mol = mol_with_h.GetAtomWithIdx(i)

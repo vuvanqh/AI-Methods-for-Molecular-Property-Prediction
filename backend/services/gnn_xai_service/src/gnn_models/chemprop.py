@@ -7,10 +7,10 @@ from chemprop.nn import BondMessagePassing, NormAggregation, BinaryClassificatio
 from ..exceptions import ModelInferenceError
 
 class Chemprop:
-    '''https://chemprop.readthedocs.io/en/latest/tutorial/python/models/basic_mpnn_model.html
-    https://chemprop.readthedocs.io/en/latest/autoapi/chemprop/nn/message_passing/index.html
-    '''
+    """Wrapper around a Chemprop v2 MPNN exposing intermediate atom embeddings for Integrated Gradients."""
+
     def __init__(self, n_tasks, device, threshold):
+        """Initialize the featurizer, BondMessagePassing, NormAggregation, and BinaryClassificationFFN."""
         self.device = device
         self.threshold = threshold 
         self.n_tasks = n_tasks
@@ -95,6 +95,8 @@ class Chemprop:
         https://chemprop.readthedocs.io/en/latest/tutorial/python/featurizers/molgraph_molecule_featurizer.html
         """
         mol_graph = self.featurizer(mol)
+        if mol_graph is None:
+            raise ModelInferenceError("Failed to featurize molecule into MolGraph.")
         mol_graphs = [mol_graph]
         batch_graph = BatchMolGraph(mol_graphs)
         batch_graph.to(self.device)
