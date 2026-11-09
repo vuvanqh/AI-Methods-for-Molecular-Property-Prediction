@@ -1,0 +1,18 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17  # includes postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres  
+      POSTGRES_DB: molecules
+    ports:
+      - "127.0.0.1:5433:5432"  # 5433 on the host: a native PostgreSQL service already owns 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # keeps the data when the container is recreated
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d molecules"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:

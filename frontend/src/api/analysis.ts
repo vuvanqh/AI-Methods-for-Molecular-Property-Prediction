@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs } from "react-router-dom";
+import { queryOptions } from "@tanstack/react-query";
 import type { PredictionResponse } from "../types/molecule";
 
 export async function fetchAnalysis(smiles: string, signal?: AbortSignal): Promise<PredictionResponse> {
@@ -15,6 +15,9 @@ export async function fetchAnalysis(smiles: string, signal?: AbortSignal): Promi
     return response.json();
 }
 
-export function analysisLoader({ params, request }: LoaderFunctionArgs) {
-    return { analysis: fetchAnalysis(params.smiles ?? "", request.signal) };
-}
+// One cache entry per SMILES. TanStack hands queryFn an AbortSignal; passing it on to fetch lets
+// the query cancel the request when the last component using it unmounts mid-request.
+export const analysisQuery = (smiles: string) => queryOptions({
+    queryKey: ["analysis", smiles],
+    queryFn: ({ signal }) => fetchAnalysis(smiles, signal),
+});
