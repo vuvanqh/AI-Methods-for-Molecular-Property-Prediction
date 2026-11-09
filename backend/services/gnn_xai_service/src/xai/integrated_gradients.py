@@ -1,6 +1,6 @@
 import torch
 from captum.attr import IntegratedGradients
-from ..config import TASKS
+from ..exceptions import ModelInferenceError
 
 
 class IntegratedGradientsExplainer:
@@ -8,53 +8,63 @@ class IntegratedGradientsExplainer:
     def __init__(
         self,
         predictor,
-        task_names: list[str] = TASKS,
         steps: int = 100
     ):
         self.predictor = predictor
-        self.task_names = task_names
         self.steps = steps
-
 
     def explain(
         self,
         atom_embeddings,
-        mol_graph_index
-    ):
+        mol_graph_index,
+        num_targets: int
+    ) -> list[list[float]]:
         """
-        Calculate atom-level Integrated Gradients for all endpoints.
+        Calculate atom-level Integrated Gradients for all model targets.
 
         Input:
             atom_embeddings:
                 [number_of_atoms, hidden_dim]
-
-            atom_to_molecule:
+            mol_graph_index:
                 [number_of_atoms]
+            num_targets:
+                Number of target endpoints to explain.
 
         Output:
-            atom_scores:
-                Attribution scores per atom per endpoint.
-
-        sources: 
-        https://chemprop.readthedocs.io/en/latest/tutorial/python/models/message_passing.html
-        https://captum.ai/api/integrated_gradients.html
-
+            raw_scores:
+                List of attribution score lists indexed by target: [target_index][atom_index]
         """
+        # Shape validations on input
+        if atom_embeddings is None or not isinstance(atom_embeddings, torch.Tensor):
+            raise ModelInferenceError("atom_embeddings must be a valid torch.Tensor.")
+        if atom_embeddings.ndim != 2:
+            raise ModelInferenceError(f"atom_embeddings must be 2D [N, d], got shape {list(atom_embeddings.shape)}")
 
-        # IG expects the first dimension to be the number of exaples.
+        num_atoms = atom_embeddings.shape[0]
+        if num_atoms == 0:
+            raise ModelInferenceError("Cannot explain molecule with 0 atom embeddings.")
+
+        if mol_graph_index is None or mol_graph_index.shape[0] != num_atoms:
+            raise ModelInferenceError(
+                f"mol_graph_index shape mismatch: expected {num_atoms}, got {None if mol_graph_index is None else mol_graph_index.shape[0]}"
+            )
+
+        if num_targets <= 0:
+            raise ModelInferenceError(f"num_targets must be positive, got {num_targets}")
+
+        # IG expects the first dimension to be the number of examples.
         inputs = atom_embeddings.unsqueeze(0) 
 
-        # IG baseline is a zero embedding matrix of the same size as the molecule (might be changed later)
+        # IG baseline is a zero embedding matrix of the same size as the molecule
         baselines = torch.zeros_like(inputs)
 
-        atom_scores_lists = {}
+        raw_scores: list[list[float]] = []
 
         def forward_func(embeddings_batched):
             """
             Captum passes embeddings with shape:
             [batch_size, number_of_atoms, hidden_dim]
             """
-
             logits_list = []
             for embeddings in embeddings_batched:
                 logits = self.predictor.forward_from_embeddings(
@@ -65,26 +75,39 @@ class IntegratedGradientsExplainer:
 
             return torch.cat(logits_list, dim=0) 
 
-        # We attribute to atom embeddings not to input (might be changed later)
+        # We attribute to atom embeddings not to input
         ig = IntegratedGradients(forward_func)
 
         # Ensure gradients are enabled for IG method
         with torch.enable_grad():
 
-            # for each task calculate different attribution
-            for task_index, task_name in enumerate(self.task_names):
+            for target_index in range(num_targets):
 
                 attributions = ig.attribute(
                     inputs=inputs,
                     baselines=baselines,
-                    target=task_index,
+                    target=target_index,
                     n_steps=self.steps  
                 )
 
+                # Validate attribution shape
+                if attributions.shape != inputs.shape:
+                    raise ModelInferenceError(
+                        f"Captum attribution shape {list(attributions.shape)} != inputs shape {list(inputs.shape)}"
+                    )
+
                 # Sum attribution per atom over the embedding dimensions. [1, number_of_atoms, hidden_dim] -> [1, number_of_atoms]
                 attributions = attributions.squeeze(0)
-                scores_per_atom = attributions.sum(dim=-1) 
+                scores_per_atom = attributions.sum(dim=-1)
 
-                atom_scores_lists[task_name] = scores_per_atom.detach().cpu().tolist() 
+                if scores_per_atom.shape[0] != num_atoms:
+                    raise ModelInferenceError(
+                        f"Expected {num_atoms} attribution scores for target {target_index}, got {scores_per_atom.shape[0]}"
+                    )
+                if torch.isnan(scores_per_atom).any() or torch.isinf(scores_per_atom).any():
+                    raise ModelInferenceError(f"NaN or Inf detected in attribution scores for target {target_index}.")
+
+                raw_scores.append(scores_per_atom.detach().cpu().tolist())
                     
-        return atom_scores_lists
+        return raw_scores
+
