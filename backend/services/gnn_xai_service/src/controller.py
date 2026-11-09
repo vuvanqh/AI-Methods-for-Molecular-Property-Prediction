@@ -26,6 +26,7 @@ gnn_router = APIRouter()
     summary="Run GNN prediction and XAI attribution for a given SMILES string",
 )
 async def prediction_and_attribution_endpoint(request: Request, payload: InferenceRequest):
+    """Serialize access with `inference_lock`, run prediction and XAI in a worker thread, and map errors to HTTP status codes."""
     inference_service = request.app.state.inference_service
     inference_lock = request.app.state.inference_lock
 
