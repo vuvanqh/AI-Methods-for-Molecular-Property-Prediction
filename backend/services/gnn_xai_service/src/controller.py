@@ -48,14 +48,14 @@ async def prediction_and_attribution_endpoint(request: Request, payload: Inferen
             logger.info("Molecule validation error: %s", exc)
             return JSONResponse(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                content={"message": str(exc)},
+                content={"message": "Invalid molecular input."},
             )
 
         except (ModelInferenceError, RuntimeError) as exc:
             logger.error("Internal model inference failure: %s", exc, exc_info=True)
             return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                content={"message": f"Inference engine failure: {str(exc)}"},
+                content={"message": "Internal inference engine failure."},
             )
 
         except Exception as exc:

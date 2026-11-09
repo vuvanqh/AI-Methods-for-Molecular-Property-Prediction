@@ -4,7 +4,7 @@ from sqlalchemy import UUID, Text, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from typing import TYPE_CHECKING
-from backend.app.src.db.models.base import Base
+from .base import Base
 import uuid
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ class MoleculeSource(Base):
         index=True,
     )
 
-    source_url: Mapped[str] = mapped_column(
+    source_identifier: Mapped[str] = mapped_column(
         Text,
         nullable=False,
     )

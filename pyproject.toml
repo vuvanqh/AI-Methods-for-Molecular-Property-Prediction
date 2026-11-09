@@ -8,19 +8,33 @@ authors = [
 ]
 requires-python = ">=3.15"
 dependencies = [
+    "alembic>=1.20.1",
     "fastapi>=0.162.0",
+    "httpx>=0.28.1",
     "pgvector>=0.5.1",
+    "psycopg[binary]>=3.3.8",
     "pydantic>=2.14.1",
     "pydantic-settings>=2.16.1",
+    "rdkit>=2026.9.1",
     "sqlalchemy>=2.1.6",
+    "torch>=2.14.1",
+    "unimol-tools>=0.1.6",
 ]
-
-[project.scripts]
-ai-methods-for-molecular-property-prediction = "ai_methods_for_molecular_property_prediction:main"
-
-[build-system]
-requires = ["uv_build>=0.12.6,<0.13.0"]
-build-backend = "uv_build"
 
 [tool.ruff.format]
 skip-magic-trailing-comma = false
+
+# PyPI only has CPU torch for Windows; CUDA 13.0 build for the RTX 5090
+[tool.uv.sources]
+torch = { index = "pytorch-cu130" }
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv]
+# not an installable package (src/ was removed): the root env just runs scripts/ and alembic
+package = false
+# unimol-tools caps numpy<2.3, which has no Python 3.15 wheels; numba (its dependency) supports up to <2.6
+override-dependencies = ["numpy>=2.3,<2.6"]
