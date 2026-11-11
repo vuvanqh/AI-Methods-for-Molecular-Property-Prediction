@@ -206,9 +206,12 @@ def train(run_name: str | None = None) -> None:
 
         test_obj, test_tasks = compute_metrics(y_true_test, y_prob_test, ALL_TASKS)
 
-        mlflow.log_metrics({"best_epoch": best_epoch, "test_objective": test_obj})
-        for t, (ep, _) in best_task_epoch.items():
-            mlflow.log_metric(f"best_epoch/{t}", ep)
+        test_log: dict[str, float] = {"best_epoch": best_epoch, "test_objective": test_obj}
+        for t, m in test_tasks.items():
+            test_log[f"best_epoch/{t}"] = best_task_epoch[t][0]
+            test_log[f"test_pr_auc/{t}"] = float(m["pr_auc"])
+            test_log[f"test_roc_auc/{t}"] = float(m["roc_auc"])
+        mlflow.log_metrics(test_log)
 
         test_df_out = pd.DataFrame.from_dict(test_tasks, orient="index")
         test_df_out["best_val_epoch"] = [best_task_epoch[t][0] for t in ALL_TASKS]
