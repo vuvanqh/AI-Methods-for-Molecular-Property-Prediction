@@ -12,8 +12,7 @@ class UniMolEmbeddings(BaseEmbeddings):
     version = unimolSettings.model_name
 
     def __init__(self, device: str = "cuda"):
-        self.device = device
-        self.model = None
+        super().__init__(device)
         self._lock = threading.Lock()
         self._unload_timer: threading.Timer | None = None
 
