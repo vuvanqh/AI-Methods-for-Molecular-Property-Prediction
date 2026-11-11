@@ -25,10 +25,15 @@ class _StubPredictor(GNNPredictor):
             return self._custom_output
 
         atom_embeddings = torch.tensor(
-            [[float(atom.GetAtomicNum()), float(atom.GetDegree())] for atom in mol.GetAtoms()],
+            [
+                [float(atom.GetAtomicNum()), float(atom.GetDegree())]
+                for atom in mol.GetAtoms()
+            ],
             dtype=torch.float32,
         )
-        probabilities = torch.linspace(0.1, 0.9, steps=TASKS_NUMBER, dtype=torch.float32)
+        probabilities = torch.linspace(
+            0.1, 0.9, steps=TASKS_NUMBER, dtype=torch.float32
+        )
         predictions = (probabilities > 0.5).int()
         return {
             "probabilities": probabilities,
@@ -47,22 +52,30 @@ class _StubExplainer(XAIExplainer):
         self._custom_scores = custom_scores
         self.explain_call_count = 0
 
-    def explain(self, atom_embeddings: torch.Tensor, num_targets: int) -> list[list[float]]:
+    def explain(
+        self, atom_embeddings: torch.Tensor, num_targets: int
+    ) -> list[list[float]]:
         self.explain_call_count += 1
         if self._custom_scores is not None:
             return self._custom_scores
 
         atom_sums = atom_embeddings.sum(dim=-1).tolist()
-        return [[float(val) + 0.01 * idx for val in atom_sums] for idx in range(num_targets)]
+        return [
+            [float(val) + 0.01 * idx for val in atom_sums] for idx in range(num_targets)
+        ]
 
 
 @pytest.fixture
-def service_and_stubs() -> tuple[MolecularInferenceService, _StubPredictor, _StubExplainer]:
+def service_and_stubs() -> tuple[
+    MolecularInferenceService, _StubPredictor, _StubExplainer
+]:
     predictor = _StubPredictor()
     explainer = _StubExplainer()
-    return MolecularInferenceService(predictor=predictor, explainer=explainer), predictor, explainer
-
-
+    return (
+        MolecularInferenceService(predictor=predictor, explainer=explainer),
+        predictor,
+        explainer,
+    )
 
 
 @pytest.mark.parametrize(
@@ -134,8 +147,9 @@ def test_predict_and_explain_is_invariant_across_equivalent_smiles(
     smiles_b: str,
 ) -> None:
     service, _, _ = service_and_stubs
-    assert service.predict_and_explain(smiles_a) == service.predict_and_explain(smiles_b)
-
+    assert service.predict_and_explain(smiles_a) == service.predict_and_explain(
+        smiles_b
+    )
 
 
 @pytest.mark.parametrize(
@@ -213,7 +227,6 @@ def test_predict_and_explain_rejects_zero_bond_molecules_before_entering_model(
 
     assert predictor.predict_call_count == 0
     assert explainer.explain_call_count == 0
-
 
 
 @pytest.mark.parametrize(

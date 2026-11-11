@@ -19,7 +19,9 @@ def gnn_predictor() -> GNNPredictor:
     )
 
 
-def test_gnn_predictor_interface_cannot_be_instantiated_without_implementing_methods() -> None:
+def test_gnn_predictor_interface_cannot_be_instantiated_without_implementing_methods() -> (
+    None
+):
     class IncompletePredictor(GNNPredictor):
         pass
 
@@ -27,7 +29,9 @@ def test_gnn_predictor_interface_cannot_be_instantiated_without_implementing_met
         IncompletePredictor()
 
 
-def test_chemprop_implements_gnn_predictor_interface(gnn_predictor: GNNPredictor) -> None:
+def test_chemprop_implements_gnn_predictor_interface(
+    gnn_predictor: GNNPredictor,
+) -> None:
     assert isinstance(gnn_predictor, GNNPredictor)
 
 
@@ -98,7 +102,9 @@ def test_gnn_predictor_applies_distinct_threshold_per_task() -> None:
         device=torch.device("cpu"),
         thresholds=[0.5] * TASKS_NUMBER,
     )
-    baseline_probs = baseline_predictor.predict(mol)["probabilities"].detach().cpu().tolist()
+    baseline_probs = (
+        baseline_predictor.predict(mol)["probabilities"].detach().cpu().tolist()
+    )
 
     # Even tasks get a threshold below prob (expect 1); odd tasks get a threshold above prob (expect 0)
     custom_thresholds = [
@@ -179,7 +185,9 @@ def test_gnn_predictor_forward_from_embeddings_matches_predict_and_supports_grad
     assert mol is not None
 
     prediction = gnn_predictor.predict(mol)
-    embeddings_with_grad = prediction["atom_embeddings"].detach().clone().requires_grad_(True)
+    embeddings_with_grad = (
+        prediction["atom_embeddings"].detach().clone().requires_grad_(True)
+    )
 
     logits = gnn_predictor.forward_from_embeddings(embeddings_with_grad)
 

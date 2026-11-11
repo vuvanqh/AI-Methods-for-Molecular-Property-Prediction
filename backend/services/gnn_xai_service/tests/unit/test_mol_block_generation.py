@@ -40,7 +40,10 @@ def test_mol_block_generation_returns_valid_molblock_and_preserves_heavy_atom_pr
 
     # Heavy atoms stay at 0 .. num_heavy - 1; appended atoms at num_heavy .. total_atoms - 1 are H (Z=1)
     for idx in range(num_heavy):
-        assert mol_with_h.GetAtomWithIdx(idx).GetAtomicNum() == mol.GetAtomWithIdx(idx).GetAtomicNum()
+        assert (
+            mol_with_h.GetAtomWithIdx(idx).GetAtomicNum()
+            == mol.GetAtomWithIdx(idx).GetAtomicNum()
+        )
     for idx in range(num_heavy, total_atoms):
         assert mol_with_h.GetAtomWithIdx(idx).GetAtomicNum() == 1
 
@@ -56,7 +59,9 @@ def test_mol_block_generation_is_deterministic_across_repeated_calls() -> None:
     assert molblock_1 == molblock_2
 
 
-def test_mol_block_generation_produces_valid_molblock_when_3d_embedding_cannot_converge() -> None:
+def test_mol_block_generation_produces_valid_molblock_when_3d_embedding_cannot_converge() -> (
+    None
+):
     strained_mol = Chem.MolFromSmiles("C1=CC2=CC=C1C=C2")
     assert strained_mol is not None
 
@@ -66,7 +71,6 @@ def test_mol_block_generation_produces_valid_molblock_when_3d_embedding_cannot_c
     parsed = Chem.MolFromMolBlock(molblock, removeHs=False)
     assert parsed is not None
     assert parsed.GetNumAtoms() == mol_with_h.GetNumAtoms()
-
 
 
 def test_mol_block_generation_raises_on_none_molecule() -> None:

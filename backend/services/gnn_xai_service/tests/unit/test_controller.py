@@ -35,7 +35,9 @@ class _StubInferenceService:
     def predict_and_explain(self, smiles: str) -> dict[str, Any]:
         self.calls.append(smiles)
         self.active_count += 1
-        self.max_concurrent_observed = max(self.max_concurrent_observed, self.active_count)
+        self.max_concurrent_observed = max(
+            self.max_concurrent_observed, self.active_count
+        )
         try:
             if self._delay_s > 0.0:
                 time.sleep(self._delay_s)
@@ -68,7 +70,9 @@ def test_controller_returns_200_and_passes_smiles_to_service() -> None:
     stub_service = _StubInferenceService()
     client = TestClient(_create_test_app(stub_service))
 
-    response = client.post("/gnn-xai/prediction_and_attribution", json={"smiles": "CCO"})
+    response = client.post(
+        "/gnn-xai/prediction_and_attribution", json={"smiles": "CCO"}
+    )
 
     assert response.status_code == 200
     validated = GNNXAIInferenceResponse(**response.json())
@@ -77,7 +81,9 @@ def test_controller_returns_200_and_passes_smiles_to_service() -> None:
 
 
 def test_controller_returns_422_when_service_raises_molecule_validation_error() -> None:
-    stub_service = _StubInferenceService(exc=MoleculeValidationError("The molecule must contain at least one bond."))
+    stub_service = _StubInferenceService(
+        exc=MoleculeValidationError("The molecule must contain at least one bond.")
+    )
     client = TestClient(_create_test_app(stub_service))
 
     response = client.post("/gnn-xai/prediction_and_attribution", json={"smiles": "C"})
@@ -87,7 +93,9 @@ def test_controller_returns_422_when_service_raises_molecule_validation_error() 
     assert error.message == "Invalid molecular input."
 
 
-def test_controller_returns_499_without_calling_service_when_client_disconnected() -> None:
+def test_controller_returns_499_without_calling_service_when_client_disconnected() -> (
+    None
+):
     stub_service = _StubInferenceService()
     test_app = _create_test_app(stub_service)
     disconnected_request = _DisconnectedRequestStub(test_app)
@@ -107,8 +115,16 @@ def test_controller_returns_499_without_calling_service_when_client_disconnected
 @pytest.mark.parametrize(
     ("raised_exception", "expected_message", "sensitive_detail"),
     [
-        (ModelInferenceError("internal-shape-secret"), "Internal inference engine failure.", "internal-shape-secret"),
-        (RuntimeError("cuda-driver-secret"), "Internal inference engine failure.", "cuda-driver-secret"),
+        (
+            ModelInferenceError("internal-shape-secret"),
+            "Internal inference engine failure.",
+            "internal-shape-secret",
+        ),
+        (
+            RuntimeError("cuda-driver-secret"),
+            "Internal inference engine failure.",
+            "cuda-driver-secret",
+        ),
         (
             ZeroDivisionError("unexpected-math-secret"),
             "An unexpected error occurred during prediction and attribution.",
@@ -124,7 +140,9 @@ def test_controller_returns_500_without_leaking_internal_exception_details(
     stub_service = _StubInferenceService(exc=raised_exception)
     client = TestClient(_create_test_app(stub_service))
 
-    response = client.post("/gnn-xai/prediction_and_attribution", json={"smiles": "CCO"})
+    response = client.post(
+        "/gnn-xai/prediction_and_attribution", json={"smiles": "CCO"}
+    )
 
     assert response.status_code == 500
     error = ErrorResponse(**response.json())
@@ -138,11 +156,19 @@ def test_controller_serializes_concurrent_requests_to_one_active_inference() -> 
 
     async def _run_concurrent() -> None:
         transport = httpx.ASGITransport(app=test_app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as client:
             responses = await asyncio.gather(
-                client.post("/gnn-xai/prediction_and_attribution", json={"smiles": "CCO"}),
-                client.post("/gnn-xai/prediction_and_attribution", json={"smiles": "CC(C)O"}),
-                client.post("/gnn-xai/prediction_and_attribution", json={"smiles": "c1ccccc1"}),
+                client.post(
+                    "/gnn-xai/prediction_and_attribution", json={"smiles": "CCO"}
+                ),
+                client.post(
+                    "/gnn-xai/prediction_and_attribution", json={"smiles": "CC(C)O"}
+                ),
+                client.post(
+                    "/gnn-xai/prediction_and_attribution", json={"smiles": "c1ccccc1"}
+                ),
             )
 
         for resp in responses:
