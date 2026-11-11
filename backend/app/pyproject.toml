@@ -10,6 +10,8 @@ dependencies = [
     "pydantic-settings>=2.16.1",
     "rdkit>=2026.9.1",
     "sqlalchemy>=2.1.8",
+    "torch>=2.15.0",
+    "unimol-tools>=0.1.6",
     "uvicorn>=0.54.0",
 ]
 
@@ -18,3 +20,24 @@ skip-magic-trailing-comma = false
 
 [tool.ruff.lint]
 ignore = ["B008"]  # FastAPI's Depends() defaults
+
+[tool.pytest.ini_options]
+pythonpath = ["."]  # tests import the app as `src.*`
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
+
+[tool.uv]
+# unimol-tools caps numpy<2.3, which has no Python 3.15 wheels; numba (its dependency) supports up to <2.6
+override-dependencies = ["numpy>=2.3,<2.6"]
+
+# queries are embedded one molecule at a time and Docker has no GPU: the CPU build skips PyPI Linux torch's ~3 GB of CUDA libraries
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
