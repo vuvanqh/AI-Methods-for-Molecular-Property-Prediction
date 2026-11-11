@@ -1,6 +1,6 @@
-import ssl
 import httpx
-from .core.config import settings
+from ..core.config import settings
+from .client import Client
 
 ACTIVITY_FIELDS = (
     "molecule_chembl_id,target_chembl_id,target_pref_name,"
@@ -14,18 +14,10 @@ PAGE_LIMIT = 1000
 DOCUMENT_BATCH_SIZE = 50
 
 
-class ChEMBLClient:
+class ChEMBLClient(Client):
     def __init__(self, base_url: str = settings.chembl_api_url):
-        self.base_url = httpx.URL(base_url.rstrip("/") + "/")
-        # one connection pool for the app's lifetime, so later calls skip the TCP/TLS handshake
-        # trying to mimic the Scoped behaviour liike in asp.net core, but httpx doesn't have a built-in scoped client, so we just keep one instance around
-        self.http = httpx.AsyncClient(
-            timeout=settings.chembl_timeout_seconds,
-            verify=ssl.create_default_context(),
-        )
-
-    async def aclose(self):
-        await self.http.aclose()
+        # trailing slash so url.join("molecule.json") appends instead of replacing the last path segment
+        super().__init__(base_url.rstrip("/") + "/", settings.chembl_timeout_seconds)
 
     # Why not just query for molecule details and act on 404? Because the API returns 404 for a molecule with no activities, which is not the same as "not found",
     # and we need the felxmatch as chembl might use different toolkit for smiles canonization than we did so it could introduce some discrepancies
@@ -76,7 +68,7 @@ class ChEMBLClient:
         """
         Collect every page of a list endpoint by following page_meta.next.
         """
-        url = self.base_url.join(f"{resource}.json")
+        url = self.url.join(f"{resource}.json")
         query: dict | None = {**params, "limit": PAGE_LIMIT}
         rows = []
         try:
@@ -89,12 +81,9 @@ class ChEMBLClient:
                 page = response.json()
                 rows.extend(page[key])
                 next_page = page["page_meta"]["next"]
-                url = self.base_url.join(next_page) if next_page else None
+                url = self.url.join(next_page) if next_page else None
                 # None keeps the query string of next; {} would replace it with nothing
                 query = None
         except httpx.RequestError as exc:
             raise ConnectionError("ChEMBL API unavailable") from exc
         return rows
-
-
-chembl_client = ChEMBLClient()
