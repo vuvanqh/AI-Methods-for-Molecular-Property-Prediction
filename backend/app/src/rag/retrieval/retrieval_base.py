@@ -1,4 +1,5 @@
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
+
 from ..result_types.retrieved_molecules import RetrievedMolecule
 
 
