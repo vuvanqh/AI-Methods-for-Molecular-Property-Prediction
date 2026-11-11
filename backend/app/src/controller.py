@@ -1,9 +1,10 @@
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
-from .model import InferenceRequest, PredictionResponse, ErrorResponse
-from .service import predict_properties
-from .db.session import get_db
 from sqlalchemy.orm import Session
+
+from .db.session import get_db
+from .model import ErrorResponse, InferenceRequest, PredictionResponse
+from .service import predict_properties
 
 app_router = APIRouter()
 
@@ -29,13 +30,13 @@ async def predict_properties_endpoint(request: InferenceRequest, db: Session = D
         result = await predict_properties(request.smiles, db)
         return result
 
-    except ValueError as exc:
+    except ValueError:
         return JSONResponse(
             status_code=422,
             content={"message": "The molecule could not be processed."},
         )
 
-    except ConnectionError as exc:
+    except ConnectionError:
         return JSONResponse(
             status_code=503,
             content={"message": "GNN service unavailable."},

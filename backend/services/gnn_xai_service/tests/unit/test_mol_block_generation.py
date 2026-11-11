@@ -1,10 +1,10 @@
 from unittest.mock import patch
+
 import pytest
 from rdkit import Chem
 
 from src.exceptions import ModelInferenceError
 from src.mol_block_generation import mol_block_generation
-
 
 # =====================================================================
 # 1. mol_block_generation — Happy Paths & Fallbacks

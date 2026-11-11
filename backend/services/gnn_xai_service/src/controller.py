@@ -1,9 +1,11 @@
 import logging
-from fastapi import APIRouter, status, Request, Response
-from .model import ErrorResponse, GNNXAIInferenceResponse, InferenceRequest
-from .exceptions import MoleculeValidationError, ModelInferenceError
-from starlette.concurrency import run_in_threadpool
+
+from fastapi import APIRouter, Request, Response, status
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
+
+from .exceptions import ModelInferenceError, MoleculeValidationError
+from .model import ErrorResponse, GNNXAIInferenceResponse, InferenceRequest
 
 logger = logging.getLogger(__name__)
 
@@ -51,15 +53,15 @@ async def prediction_and_attribution_endpoint(request: Request, payload: Inferen
                 content={"message": "Invalid molecular input."},
             )
 
-        except (ModelInferenceError, RuntimeError) as exc:
-            logger.error("Internal model inference failure: %s", exc, exc_info=True)
+        except (ModelInferenceError, RuntimeError):
+            logger.exception("Internal model inference failure")
             return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 content={"message": "Internal inference engine failure."},
             )
 
-        except Exception as exc:
-            logger.error("Unexpected error occurred during inference: %s", exc, exc_info=True)
+        except Exception:
+            logger.exception("Unexpected error occurred during inference")
             return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 content={"message": "An unexpected error occurred during prediction and attribution."},

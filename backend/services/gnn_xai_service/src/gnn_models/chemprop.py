@@ -1,10 +1,11 @@
 import torch
-
 from chemprop.data import BatchMolGraph
 from chemprop.featurizers import SimpleMoleculeMolGraphFeaturizer
 from chemprop.models import MPNN
-from chemprop.nn import BondMessagePassing, NormAggregation, BinaryClassificationFFN
+from chemprop.nn import BinaryClassificationFFN, BondMessagePassing, NormAggregation
+
 from ..exceptions import ModelInferenceError
+
 
 class Chemprop:
     """Wrapper around a Chemprop v2 MPNN exposing intermediate atom embeddings for Integrated Gradients."""

@@ -13,3 +13,6 @@ dependencies = [
 
 [tool.ruff.format]
 skip-magic-trailing-comma = false
+
+[tool.ruff.lint]
+ignore = ["B008"]  # FastAPI's Depends() defaults

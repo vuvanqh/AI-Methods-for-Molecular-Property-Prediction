@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime
-from sqlalchemy import UUID, Text, DateTime, Enum, func
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import mapped_column, Mapped
-
 import uuid
-from .base import Base
+from datetime import datetime
+
+from sqlalchemy import UUID, DateTime, Enum, Text, func
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+
 from ..analysis_status import AnalysisStatus
+from .base import Base
 
 
 class Analysis(Base):
