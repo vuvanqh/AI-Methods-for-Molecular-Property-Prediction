@@ -39,18 +39,7 @@
   overflow: hidden;
 }
 
-/* loading state: a slow shimmer on the placeholder text */
-.molecule-overview--placeholder[aria-busy='true'] {
-  animation: molecule-overview-pulse 1.6s ease-in-out infinite;
-}
-
-@keyframes molecule-overview-pulse {
-  50% {
-    color: var(--text-muted);
-  }
-}
-
-/* the current `<p>visualization card</p>` stand-in */
+/* loading and error stand-in for the overview card */
 .molecule-overview--placeholder {
   display: grid;
   place-items: center;
@@ -60,6 +49,267 @@
   background:
     radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.05) 1px, transparent 0) 0 0 / 22px 22px,
     linear-gradient(180deg, var(--surface-2), var(--surface));
+}
+
+/*
+ * Analysis loader. The page renders only the host and its status line; loader.ts builds the rest:
+ *
+ * <div class="molecule-overview--placeholder analysis-loader card" data-animate="loader" data-smiles="…">
+ *   <p class="analysis-loader__status" role="status">Loading molecular structure…</p>   (React)
+ *   <div class="analysis-loader__stage">  svg graph · flow · readout (vector) · flow · readout (heads)
+ *   <div class="analysis-loader__phase">  4 bars + 4 stacked captions, one visible at a time
+ *   <span class="analysis-loader__clock"> SMILES · elapsed; [data-slow] on the host adds a line
+ */
+.analysis-loader {
+  --atom-c: #c2c8da;
+  --atom-o: #f07890;
+  --atom-n: #8fa4ff;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'stage stage'
+    'phase status'
+    'phase clock';
+  place-items: stretch;
+  align-content: center;
+  column-gap: var(--s-6);
+  padding: var(--s-6) var(--s-8) var(--s-5);
+}
+
+.analysis-loader__stage {
+  grid-area: stage;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-5);
+  margin-bottom: var(--s-4);
+  padding-bottom: var(--s-5);
+  border-bottom: var(--hairline);
+}
+
+.analysis-loader__graph {
+  flex: 0 1 400px;
+  min-width: 0;
+  aspect-ratio: 400 / 290;
+  overflow: visible;
+}
+
+.analysis-loader__graph line {
+  stroke: #7d87a4;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+}
+
+.analysis-loader__atom circle {
+  fill: var(--atom-c);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.analysis-loader__atom[data-el='O'] circle {
+  fill: var(--atom-o);
+}
+
+.analysis-loader__atom[data-el='N'] circle {
+  fill: var(--atom-n);
+}
+
+.analysis-loader__atom text {
+  font: 500 10px var(--mono);
+  fill: var(--accent-ink);
+}
+
+/* atom state during message passing */
+.analysis-loader__msg {
+  fill: rgb(184 166 244 / 0.5);
+  filter: blur(6px);
+}
+
+.analysis-loader__pulse {
+  fill: #ddd4ff;
+  filter: drop-shadow(0 0 4px var(--accent));
+}
+
+/* same look as the real viewer's XAI marks */
+.analysis-loader__xai {
+  fill: color-mix(in srgb, var(--xai-highlight) 16%, transparent);
+  stroke: var(--xai-highlight);
+  stroke-width: 1;
+}
+
+.analysis-loader__flow {
+  position: relative;
+  flex: 0 0 44px;
+  height: 2px;
+  opacity: 0.15;
+  background: repeating-linear-gradient(90deg, var(--accent) 0 6px, transparent 6px 12px);
+}
+
+.analysis-loader__flow::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: -4px;
+  width: 7px;
+  height: 10px;
+  background: var(--accent);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.analysis-loader__eyebrow {
+  margin-bottom: var(--s-3);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.analysis-loader__vector {
+  display: grid;
+  grid-template-columns: repeat(8, 18px);
+  gap: 4px;
+}
+
+.analysis-loader__cell {
+  height: 18px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.analysis-loader__cell-fill {
+  display: block;
+  height: 100%;
+  background: rgb(184 166 244 / var(--v));
+}
+
+.analysis-loader__heads {
+  display: grid;
+  gap: 10px;
+  width: 200px;
+}
+
+.analysis-loader__head {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  font: 400 11px/1 var(--mono);
+  color: var(--text-muted);
+}
+
+.analysis-loader__head-track {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.analysis-loader__head-scan {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, var(--warm), transparent);
+}
+
+.analysis-loader__phase {
+  grid-area: phase;
+}
+
+.analysis-loader__segs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.analysis-loader__seg {
+  width: 32px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border-strong);
+  overflow: hidden;
+}
+
+.analysis-loader__seg > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+/* stacked in one cell; GSAP shows one at a time */
+.analysis-loader__captions {
+  display: grid;
+}
+
+.analysis-loader__caption {
+  grid-area: 1 / 1;
+}
+
+.analysis-loader__caption strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.analysis-loader__caption span {
+  font: 400 11px/1.7 var(--mono);
+  color: var(--text-muted);
+}
+
+.analysis-loader__status,
+.analysis-loader__clock {
+  justify-self: end;
+  text-align: right;
+  font: 400 11px/1.6 var(--mono);
+  color: var(--text-muted);
+}
+
+.analysis-loader__status {
+  grid-area: status;
+  align-self: end;
+}
+
+.analysis-loader__clock {
+  grid-area: clock;
+  max-width: 48ch;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.analysis-loader[data-slow] .analysis-loader__clock::after {
+  content: 'Still working. The written interpretation can take a minute or two.';
+  display: block;
+  color: var(--text-muted);
+}
+
+/* narrow: graph only, footer stacked */
+@media (max-width: 760px) {
+  .analysis-loader {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'stage' 'phase' 'status' 'clock';
+    row-gap: var(--s-2);
+    padding: var(--s-5);
+  }
+
+  .analysis-loader__stage {
+    justify-content: center;
+  }
+
+  .analysis-loader__flow,
+  .analysis-loader__readout {
+    display: none;
+  }
+
+  .analysis-loader__status,
+  .analysis-loader__clock {
+    justify-self: start;
+    text-align: left;
+  }
 }
 
 .molecule-overview__header {
