@@ -1,4 +1,5 @@
 """Service configuration constants: target endpoints (Tox21, CYP450, hERG), device, threshold, and IG steps."""
+
 import torch
 
 # Prediction target groups
@@ -24,9 +25,7 @@ CYP450 = [
     "CYP1A2",
     "CYP2C9",
 ]
-HERG = [
-    "hERG_Karim"
-]
+HERG = ["hERG_Karim"]
 
 TASKS = TOX_21 + CYP450 + HERG
 TASKS_NUMBER = len(TASKS)

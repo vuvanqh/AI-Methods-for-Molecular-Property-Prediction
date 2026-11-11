@@ -13,33 +13,34 @@ class Chemprop:
     def __init__(self, n_tasks, device, threshold):
         """Initialize the featurizer, BondMessagePassing, NormAggregation, and BinaryClassificationFFN."""
         self.device = device
-        self.threshold = threshold 
+        self.threshold = threshold
         self.n_tasks = n_tasks
 
         self.featurizer = SimpleMoleculeMolGraphFeaturizer()
 
-        mp = BondMessagePassing() 
-        agg = NormAggregation() 
-        ffn = BinaryClassificationFFN(n_tasks) 
+        mp = BondMessagePassing()
+        agg = NormAggregation()
+        ffn = BinaryClassificationFFN(n_tasks)
         self.model = MPNN(mp, agg, ffn)
 
         self.model.eval()
         self.model = self.model.to(self.device)
-
 
     def predict(self, mol):
         """Predict molecular properties for one RDKit molecule.
         https://chemprop.readthedocs.io/en/latest/_modules/chemprop/models/model.html
         """
         if mol is None:
-            raise ModelInferenceError("Cannot run Chemprop prediction on None molecule.")
+            raise ModelInferenceError(
+                "Cannot run Chemprop prediction on None molecule."
+            )
 
         num_atoms = mol.GetNumAtoms()
         if num_atoms == 0:
             raise ModelInferenceError("Molecule contains 0 atoms.")
 
         # batch of size 1 in our case
-        batch_graph = self.build_batch_mol_graph(mol) 
+        batch_graph = self.build_batch_mol_graph(mol)
 
         atom_embeddings = self.get_embeddings(batch_graph)
 
@@ -63,7 +64,7 @@ class Chemprop:
 
         logits = self.forward_from_embeddings(
             atom_embeddings,
-            mol_graph_index, 
+            mol_graph_index,
         )
 
         # Invariant checks on logits
@@ -86,9 +87,8 @@ class Chemprop:
             "probabilities": probabilities,
             "predictions": predictions,
             "atom_embeddings": atom_embeddings,
-            "mol_graph_index": mol_graph_index
+            "mol_graph_index": mol_graph_index,
         }
-    
 
     def build_batch_mol_graph(self, mol):
         """
@@ -103,7 +103,6 @@ class Chemprop:
         batch_graph.to(self.device)
 
         return batch_graph
-    
 
     def get_embeddings(self, batch_graph):
         """
@@ -114,7 +113,6 @@ class Chemprop:
             atom_embeddings = self.model.message_passing(batch_graph)
         return atom_embeddings
 
-
     def forward_from_embeddings(
         self,
         atom_embeddings,
@@ -124,7 +122,7 @@ class Chemprop:
         # aggregate from atom embeddings to one molecule embedding
         molecule_embeddings = self.model.agg(
             atom_embeddings,
-            mol_graph_index, 
+            mol_graph_index,
         )
 
         # batchnorm

@@ -23,8 +23,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="GNN and XAI Service", docs_url="/gnn-xai/docs", redoc_url="/gnn-xai/redoc", lifespan=lifespan
+    title="GNN and XAI Service",
+    docs_url="/gnn-xai/docs",
+    redoc_url="/gnn-xai/redoc",
+    lifespan=lifespan,
 )
 
 app.include_router(gnn_router, prefix="/gnn-xai")
-

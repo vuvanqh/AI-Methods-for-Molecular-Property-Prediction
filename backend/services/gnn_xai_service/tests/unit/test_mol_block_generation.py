@@ -47,7 +47,10 @@ def test_mol_block_generation_returns_valid_molblock_and_preserves_heavy_atom_pr
 
     # Prefix 0 .. num_heavy - 1 matches original atoms; suffix num_heavy .. total_atoms - 1 are H (Z=1)
     for idx in range(num_heavy):
-        assert mol_with_h.GetAtomWithIdx(idx).GetAtomicNum() == mol.GetAtomWithIdx(idx).GetAtomicNum()
+        assert (
+            mol_with_h.GetAtomWithIdx(idx).GetAtomicNum()
+            == mol.GetAtomWithIdx(idx).GetAtomicNum()
+        )
     for idx in range(num_heavy, total_atoms):
         assert mol_with_h.GetAtomWithIdx(idx).GetAtomicNum() == 1
 
@@ -75,14 +78,16 @@ def test_mol_block_generation_uses_random_coords_on_first_embed_failure() -> Non
     def side_effect(m: Chem.Mol, params: object) -> int:
         nonlocal call_count
         call_count += 1
-        assert getattr(params, "randomSeed", None) == 0xf00d
+        assert getattr(params, "randomSeed", None) == 0xF00D
         if call_count == 1:
             assert getattr(params, "useRandomCoords", False) is False
             return -1
         assert getattr(params, "useRandomCoords", False) is True
         return real_embed(m, params)
 
-    with patch("src.mol_block_generation.AllChem.EmbedMolecule", side_effect=side_effect):
+    with patch(
+        "src.mol_block_generation.AllChem.EmbedMolecule", side_effect=side_effect
+    ):
         molblock, mol_with_h = mol_block_generation(mol)
         assert call_count == 2
         assert "V2000" in molblock
@@ -90,7 +95,9 @@ def test_mol_block_generation_uses_random_coords_on_first_embed_failure() -> Non
 
 
 @pytest.mark.fast_rdkit
-def test_mol_block_generation_auto_generates_2d_molblock_when_3d_embedding_fails() -> None:
+def test_mol_block_generation_auto_generates_2d_molblock_when_3d_embedding_fails() -> (
+    None
+):
     """
     When both ETKDGv3 and ETKDGv3(useRandomCoords=True) return -1 (e.g. strained pentalene
     "C1=CC2=CC=C1C=C2"), `Chem.MolToMolBlock` automatically generates 2D coordinates in the
@@ -112,8 +119,10 @@ def test_mol_block_generation_auto_generates_2d_molblock_when_3d_embedding_fails
 
 @pytest.mark.fast_rdkit
 def test_mol_block_generation_raises_on_none_mol() -> None:
-    with pytest.raises(ModelInferenceError, match="Cannot generate MolBlock from None molecule"):
-        mol_block_generation(None)  
+    with pytest.raises(
+        ModelInferenceError, match="Cannot generate MolBlock from None molecule"
+    ):
+        mol_block_generation(None)
 
 
 @pytest.mark.fast_rdkit
@@ -121,6 +130,11 @@ def test_mol_block_generation_raises_when_mol_to_molblock_throws() -> None:
     mol = Chem.MolFromSmiles("CCO")
     assert mol is not None
 
-    with patch("src.mol_block_generation.Chem.MolToMolBlock", side_effect=RuntimeError("RDKit C++ error")):
-        with pytest.raises(ModelInferenceError, match="Failed to generate MolBlock string for molecule"):
+    with patch(
+        "src.mol_block_generation.Chem.MolToMolBlock",
+        side_effect=RuntimeError("RDKit C++ error"),
+    ):
+        with pytest.raises(
+            ModelInferenceError, match="Failed to generate MolBlock string for molecule"
+        ):
             mol_block_generation(mol)

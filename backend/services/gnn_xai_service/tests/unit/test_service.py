@@ -52,7 +52,12 @@ def test_predict_and_explain_happy_path_returns_valid_response_structure(
 
     result = service.predict_and_explain(smiles)
 
-    assert set(result.keys()) == {"predictions", "probabilities", "atomscores", "molblock"}
+    assert set(result.keys()) == {
+        "predictions",
+        "probabilities",
+        "atomscores",
+        "molblock",
+    }
     assert len(result["predictions"]) == TASKS_NUMBER
     assert len(result["probabilities"]) == TASKS_NUMBER
     assert "V2000" in result["molblock"]
@@ -113,9 +118,13 @@ def test_predict_and_explain_canonicalizes_equivalent_smiles_before_calling_pred
 
     service.predictor.predict.side_effect = fake_predict
 
-    mol_expected = Chem.MolFromSmiles(Chem.MolToSmiles(Chem.MolFromSmiles(smiles_a), canonical=True))
+    mol_expected = Chem.MolFromSmiles(
+        Chem.MolToSmiles(Chem.MolFromSmiles(smiles_a), canonical=True)
+    )
     n_atoms = mol_expected.GetNumAtoms()
-    service.explainer.explain.return_value = [[0.1 * i for i in range(n_atoms)] for _ in range(TASKS_NUMBER)]
+    service.explainer.explain.return_value = [
+        [0.1 * i for i in range(n_atoms)] for _ in range(TASKS_NUMBER)
+    ]
 
     res_a = service.predict_and_explain(smiles_a)
     res_b = service.predict_and_explain(smiles_b)
@@ -124,8 +133,12 @@ def test_predict_and_explain_canonicalizes_equivalent_smiles_before_calling_pred
     mol_passed_a, mol_passed_b = captured_mols
 
     # Both calls received a canonicalized Mol with identical atom ordering and chiral tags
-    assert [a.GetSymbol() for a in mol_passed_a.GetAtoms()] == [a.GetSymbol() for a in mol_passed_b.GetAtoms()]
-    assert [a.GetChiralTag() for a in mol_passed_a.GetAtoms()] == [a.GetChiralTag() for a in mol_passed_b.GetAtoms()]
+    assert [a.GetSymbol() for a in mol_passed_a.GetAtoms()] == [
+        a.GetSymbol() for a in mol_passed_b.GetAtoms()
+    ]
+    assert [a.GetChiralTag() for a in mol_passed_a.GetAtoms()] == [
+        a.GetChiralTag() for a in mol_passed_b.GetAtoms()
+    ]
     assert res_a == res_b
 
 
@@ -160,11 +173,11 @@ def test_predict_and_explain_rejects_empty_or_whitespace_smiles(
     "invalid_smiles",
     [
         "not_a_smiles",
-        "C(C",               # Unclosed branch parenthesis
-        "c1cccc1",           # Unkekulizable aromatic ring
-        "C1CC",              # Unclosed ring digit
-        "C(C)(C)(C)(C)C",    # Pentavalent carbon (fails RDKit valence check)
-        "F(F)F",             # Hypervalent fluorine
+        "C(C",  # Unclosed branch parenthesis
+        "c1cccc1",  # Unkekulizable aromatic ring
+        "C1CC",  # Unclosed ring digit
+        "C(C)(C)(C)(C)C",  # Pentavalent carbon (fails RDKit valence check)
+        "F(F)F",  # Hypervalent fluorine
     ],
 )
 def test_predict_and_explain_rejects_unparseable_smiles(
@@ -173,7 +186,9 @@ def test_predict_and_explain_rejects_unparseable_smiles(
 ) -> None:
     # `with pytest.raises(...)` asserts that the code block raises MoleculeValidationError
     # with a message matching the regex; if no error is raised, pytest fails the test.
-    with pytest.raises(MoleculeValidationError, match="RDKit could not parse the provided SMILES"):
+    with pytest.raises(
+        MoleculeValidationError, match="RDKit could not parse the provided SMILES"
+    ):
         uninitialized_service.predict_and_explain(invalid_smiles)
 
 
@@ -187,7 +202,9 @@ def test_predict_and_explain_rejects_zero_atom_molecule(
     on line 26, and mock `Chem.MolFromSmiles` to return an empty 0-atom `Chem.Mol()`.
     """
     with patch("src.service.Chem.MolFromSmiles", return_value=Chem.Mol()):
-        with pytest.raises(MoleculeValidationError, match="The molecule must contain at least one atom"):
+        with pytest.raises(
+            MoleculeValidationError, match="The molecule must contain at least one atom"
+        ):
             uninitialized_service.predict_and_explain("CCO")
 
 
@@ -198,12 +215,17 @@ def test_predict_and_explain_rejects_when_canonical_reparse_returns_none(
     """Tests the `if mol is None:` guard after `Chem.MolFromSmiles(canonical_smiles)` in `service.py`."""
     valid_mol = Chem.MolFromSmiles("CCO")
     with patch("src.service.Chem.MolFromSmiles", side_effect=[valid_mol, None]):
-        with pytest.raises(MoleculeValidationError, match="RDKit could not re-parse the canonicalized SMILES"):
+        with pytest.raises(
+            MoleculeValidationError,
+            match="RDKit could not re-parse the canonicalized SMILES",
+        ):
             uninitialized_service.predict_and_explain("CCO")
 
 
 @pytest.mark.fast_rdkit
-def test_predict_and_explain_raises_when_mol_with_h_has_fewer_atoms_than_heavy_atoms() -> None:
+def test_predict_and_explain_raises_when_mol_with_h_has_fewer_atoms_than_heavy_atoms() -> (
+    None
+):
     """Tests the `if num_atoms_with_h < num_atoms_without_h:` guard in `service.py`."""
     service = MolecularInferenceService.__new__(MolecularInferenceService)
     service.predictor = MagicMock()
@@ -215,16 +237,24 @@ def test_predict_and_explain_raises_when_mol_with_h_has_fewer_atoms_than_heavy_a
         "atom_embeddings": torch.ones((3, 16)),
         "mol_graph_index": torch.zeros((3,), dtype=torch.long),
     }
-    service.explainer.explain.return_value = [[0.1, 0.2, 0.3] for _ in range(TASKS_NUMBER)]
+    service.explainer.explain.return_value = [
+        [0.1, 0.2, 0.3] for _ in range(TASKS_NUMBER)
+    ]
 
     smaller_mol = Chem.MolFromSmiles("CC")  # 2 atoms < 3 atoms in CCO
-    with patch("src.service.mol_block_generation", return_value=("mock_molblock", smaller_mol)):
-        with pytest.raises(ModelInferenceError, match="Atom count mismatch: mol_with_h has 2 atoms"):
+    with patch(
+        "src.service.mol_block_generation", return_value=("mock_molblock", smaller_mol)
+    ):
+        with pytest.raises(
+            ModelInferenceError, match="Atom count mismatch: mol_with_h has 2 atoms"
+        ):
             service.predict_and_explain("CCO")
 
 
 @pytest.mark.fast_rdkit
-def test_service_predict_and_explain_guardrails_on_corrupted_predictor_or_explainer_outputs() -> None:
+def test_service_predict_and_explain_guardrails_on_corrupted_predictor_or_explainer_outputs() -> (
+    None
+):
     """Tests all intermediate tensor/list invariant checks in `service.predict_and_explain`."""
     service = MolecularInferenceService.__new__(MolecularInferenceService)
     service.predictor = MagicMock()
@@ -279,12 +309,18 @@ def test_service_predict_and_explain_guardrails_on_corrupted_predictor_or_explai
 
     # 6. Wrong target count from explainer
     service.predictor.predict.return_value = valid_predictor_output
-    service.explainer.explain.return_value = [[0.1, 0.2, 0.3]]  # Only 1 target instead of 18
-    with pytest.raises(ModelInferenceError, match="Explainer returned 1 target attributions"):
+    service.explainer.explain.return_value = [
+        [0.1, 0.2, 0.3]
+    ]  # Only 1 target instead of 18
+    with pytest.raises(
+        ModelInferenceError, match="Explainer returned 1 target attributions"
+    ):
         service.predict_and_explain("CCO")
 
     # 7. Wrong per-atom score count from explainer for a task
-    service.explainer.explain.return_value = [[0.1, 0.2] for _ in range(len(TASKS))]  # 2 scores for 3-atom CCO
+    service.explainer.explain.return_value = [
+        [0.1, 0.2] for _ in range(len(TASKS))
+    ]  # 2 scores for 3-atom CCO
     with pytest.raises(ModelInferenceError, match="attribution score count"):
         service.predict_and_explain("CCO")
 
@@ -360,7 +396,10 @@ def test_validate_mol_atomic_indices_raises_when_appended_atom_is_not_hydrogen(
     mol = Chem.MolFromSmiles("CC")  # 2 carbons (K=2)
     mol_extra_heavy = Chem.MolFromSmiles("CCO")  # Atom at index 2 is Oxygen (Z=8 != 1)
 
-    with pytest.raises(ModelInferenceError, match="Expected Hydrogen at index 2, but got atomic number Z=8"):
+    with pytest.raises(
+        ModelInferenceError,
+        match="Expected Hydrogen at index 2, but got atomic number Z=8",
+    ):
         uninitialized_service.validate_mol_atomic_indices(
             mol, mol.GetNumAtoms(), mol_extra_heavy, mol_extra_heavy.GetNumAtoms()
         )

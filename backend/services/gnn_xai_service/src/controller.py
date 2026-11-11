@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 gnn_router = APIRouter()
 
+
 @gnn_router.post(
     "/prediction_and_attribution",
     response_model=GNNXAIInferenceResponse,
@@ -27,7 +28,9 @@ gnn_router = APIRouter()
     },
     summary="Run GNN prediction and XAI attribution for a given SMILES string",
 )
-async def prediction_and_attribution_endpoint(request: Request, payload: InferenceRequest):
+async def prediction_and_attribution_endpoint(
+    request: Request, payload: InferenceRequest
+):
     """Serialize access with `inference_lock`, run prediction and XAI in a worker thread, and map errors to HTTP status codes."""
     inference_service = request.app.state.inference_service
     inference_lock = request.app.state.inference_lock
@@ -36,13 +39,14 @@ async def prediction_and_attribution_endpoint(request: Request, payload: Inferen
     async with inference_lock:
         # Check if caller already disconnected/timed out while waiting in queue
         if await request.is_disconnected():
-            logger.warning("Client disconnected while waiting for inference lock. Aborting calculation.")
+            logger.warning(
+                "Client disconnected while waiting for inference lock. Aborting calculation."
+            )
             return Response(status_code=499)
 
         try:
             result = await run_in_threadpool(
-                inference_service.predict_and_explain,
-                payload.smiles
+                inference_service.predict_and_explain, payload.smiles
             )
             return result
 
@@ -64,6 +68,7 @@ async def prediction_and_attribution_endpoint(request: Request, payload: Inferen
             logger.exception("Unexpected error occurred during inference")
             return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                content={"message": "An unexpected error occurred during prediction and attribution."},
+                content={
+                    "message": "An unexpected error occurred during prediction and attribution."
+                },
             )
-

@@ -10,7 +10,9 @@ from src.exceptions import ModelInferenceError, MoleculeValidationError
 from src.model import InferenceRequest
 
 
-def _make_mock_request(service_mock: MagicMock, disconnected: bool = False) -> MagicMock:
+def _make_mock_request(
+    service_mock: MagicMock, disconnected: bool = False
+) -> MagicMock:
     req = MagicMock()
     req.app.state.inference_service = service_mock
     req.app.state.inference_lock = asyncio.Lock()
@@ -19,7 +21,12 @@ def _make_mock_request(service_mock: MagicMock, disconnected: bool = False) -> M
 
 
 def test_controller_happy_path_returns_service_result() -> None:
-    expected = {"predictions": {}, "probabilities": {}, "atomscores": {}, "molblock": "MOCK"}
+    expected = {
+        "predictions": {},
+        "probabilities": {},
+        "atomscores": {},
+        "molblock": "MOCK",
+    }
     service_mock = MagicMock()
     service_mock.predict_and_explain.return_value = expected
     req = _make_mock_request(service_mock, disconnected=False)
@@ -48,7 +55,9 @@ def test_controller_disconnected_client_returns_499_without_running_service() ->
 
 def test_controller_molecule_validation_error_returns_422() -> None:
     service_mock = MagicMock()
-    service_mock.predict_and_explain.side_effect = MoleculeValidationError("SMILES must not be empty.")
+    service_mock.predict_and_explain.side_effect = MoleculeValidationError(
+        "SMILES must not be empty."
+    )
     req = _make_mock_request(service_mock, disconnected=False)
 
     response = asyncio.run(
@@ -62,7 +71,9 @@ def test_controller_molecule_validation_error_returns_422() -> None:
 
 def test_controller_model_inference_error_returns_500() -> None:
     service_mock = MagicMock()
-    service_mock.predict_and_explain.side_effect = ModelInferenceError("NaN or Inf detected in model output logits.")
+    service_mock.predict_and_explain.side_effect = ModelInferenceError(
+        "NaN or Inf detected in model output logits."
+    )
     req = _make_mock_request(service_mock, disconnected=False)
 
     response = asyncio.run(
@@ -87,12 +98,16 @@ def test_controller_native_runtime_error_returns_500() -> None:
 
     assert isinstance(response, JSONResponse)
     assert response.status_code == 500
-    assert json.loads(response.body) == {"message": "Internal inference engine failure."}
+    assert json.loads(response.body) == {
+        "message": "Internal inference engine failure."
+    }
 
 
 def test_controller_unexpected_exception_returns_generic_500() -> None:
     service_mock = MagicMock()
-    service_mock.predict_and_explain.side_effect = ZeroDivisionError("secret internal division by zero")
+    service_mock.predict_and_explain.side_effect = ZeroDivisionError(
+        "secret internal division by zero"
+    )
     req = _make_mock_request(service_mock, disconnected=False)
 
     response = asyncio.run(

@@ -21,10 +21,7 @@ class MolecularInferenceService:
             steps=IG_STEPS,
         )
 
-    def predict_and_explain(
-        self,
-        smiles: str
-    ):
+    def predict_and_explain(self, smiles: str):
         """
         Validate a SMILES string, run multi-task GNN prediction and atom-level IG attribution,
         and generate an index-aligned MolBlock for 3Dmol.js visualization.
@@ -32,21 +29,25 @@ class MolecularInferenceService:
         # 1. Validate SMILES input
         if not smiles or not isinstance(smiles, str) or not smiles.strip():
             raise MoleculeValidationError("SMILES must not be empty.")
-        
-        mol = Chem.MolFromSmiles(smiles) 
+
+        mol = Chem.MolFromSmiles(smiles)
 
         if mol is None:
             raise MoleculeValidationError("RDKit could not parse the provided SMILES.")
 
         num_atoms_without_h = mol.GetNumAtoms()
         if num_atoms_without_h == 0:
-            raise MoleculeValidationError("The molecule must contain at least one atom.")
+            raise MoleculeValidationError(
+                "The molecule must contain at least one atom."
+            )
 
         # Normalize to canonical SMILES so chiral tags (@/@@) and atom indices are traversal-independent
         canonical_smiles = Chem.MolToSmiles(mol, canonical=True)
         mol = Chem.MolFromSmiles(canonical_smiles)
         if mol is None:
-            raise MoleculeValidationError("RDKit could not re-parse the canonicalized SMILES.")
+            raise MoleculeValidationError(
+                "RDKit could not re-parse the canonicalized SMILES."
+            )
         num_atoms_without_h = mol.GetNumAtoms()
 
         # 2. Run GNN model prediction
@@ -67,7 +68,9 @@ class MolecularInferenceService:
         for task_name, prob in zip(TASKS, probabilities_list):
             prob_float = float(prob)
             if math.isnan(prob_float) or prob_float < 0.0 or prob_float > 1.0:
-                raise ModelInferenceError(f"Invalid probability value {prob_float} for task {task_name}.")
+                raise ModelInferenceError(
+                    f"Invalid probability value {prob_float} for task {task_name}."
+                )
             probabilities[task_name] = prob_float
 
         # Extract and validate predictions
@@ -82,8 +85,7 @@ class MolecularInferenceService:
             )
 
         predictions = {
-            task_name: bool(pred)
-            for task_name, pred in zip(TASKS, predictions_list)
+            task_name: bool(pred) for task_name, pred in zip(TASKS, predictions_list)
         }
 
         # 3. Calculate atom-level XAI attributions (by target indices)
@@ -108,7 +110,9 @@ class MolecularInferenceService:
             )
 
         # to make sure there is no mismatch in atoms ordering between prediction and visualization:
-        self.validate_mol_atomic_indices(mol, num_atoms_without_h, mol_with_h, num_atoms_with_h)
+        self.validate_mol_atomic_indices(
+            mol, num_atoms_without_h, mol_with_h, num_atoms_with_h
+        )
 
         # 5. Map target index to task names and build atom scores dictionary using real Atom.GetIdx()
         atom_scores = {}
@@ -122,7 +126,9 @@ class MolecularInferenceService:
 
             atom_scores[task_name] = {
                 atom.GetIdx(): (
-                    float(scores[atom.GetIdx()]) if atom.GetIdx() < num_atoms_without_h else None
+                    float(scores[atom.GetIdx()])
+                    if atom.GetIdx() < num_atoms_without_h
+                    else None
                 )
                 for atom in mol_with_h.GetAtoms()
             }
@@ -131,10 +137,12 @@ class MolecularInferenceService:
             "predictions": predictions,
             "probabilities": probabilities,
             "atomscores": atom_scores,
-            "molblock": molblock
+            "molblock": molblock,
         }
 
-    def validate_mol_atomic_indices(self, mol, num_atoms_without_h, mol_with_h, num_atoms_with_h):
+    def validate_mol_atomic_indices(
+        self, mol, num_atoms_without_h, mol_with_h, num_atoms_with_h
+    ):
         """Verify that heavy atoms remain at indices 0 .. K-1 and appended atoms at K .. N-1 are all hydrogens."""
         # Verify heavy-atom indices and atomic numbers match between `mol` and `mol_with_h`
         for i in range(num_atoms_without_h):
@@ -156,8 +164,3 @@ class MolecularInferenceService:
                 raise ModelInferenceError(
                     f"Expected Hydrogen at index {i}, but got atomic number Z={h_atom.GetAtomicNum()}"
                 )
-    
-
-    
-        
-

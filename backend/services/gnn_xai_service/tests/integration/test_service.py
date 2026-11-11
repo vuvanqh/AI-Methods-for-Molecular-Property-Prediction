@@ -76,8 +76,12 @@ def test_service_pipeline_invariance_on_equivalent_smiles(
     assert res_a["predictions"] == res_b["predictions"]
     assert res_a["molblock"] == res_b["molblock"]
 
-    probs_a = torch.tensor([res_a["probabilities"][t] for t in TASKS], dtype=torch.float32)
-    probs_b = torch.tensor([res_b["probabilities"][t] for t in TASKS], dtype=torch.float32)
+    probs_a = torch.tensor(
+        [res_a["probabilities"][t] for t in TASKS], dtype=torch.float32
+    )
+    probs_b = torch.tensor(
+        [res_b["probabilities"][t] for t in TASKS], dtype=torch.float32
+    )
     torch.testing.assert_close(probs_a, probs_b, rtol=1e-5, atol=1e-6)
 
     for task in TASKS:

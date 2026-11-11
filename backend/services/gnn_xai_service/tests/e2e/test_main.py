@@ -39,7 +39,12 @@ def test_e2e_post_valid_smiles_returns_200_and_manages_lifespan(
         )
         assert response.status_code == 200
         data = response.json()
-        assert set(data.keys()) == {"predictions", "probabilities", "atomscores", "molblock"}
+        assert set(data.keys()) == {
+            "predictions",
+            "probabilities",
+            "atomscores",
+            "molblock",
+        }
         assert "V2000" in data["molblock"]
         assert "M  END" in data["molblock"]
         assert set(data["predictions"].keys()) == set(TASKS)
@@ -130,11 +135,20 @@ def test_e2e_concurrent_requests_are_serialized_by_inference_lock() -> None:
             app.state.inference_service.predict_and_explain = tracked_predict
 
             transport = httpx.ASGITransport(app=app)
-            async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            async with httpx.AsyncClient(
+                transport=transport, base_url="http://testserver"
+            ) as client:
                 responses = await asyncio.gather(
-                    client.post("/gnn-xai/prediction_and_attribution", json={"smiles": "CCO"}),
-                    client.post("/gnn-xai/prediction_and_attribution", json={"smiles": "CC(C)O"}),
-                    client.post("/gnn-xai/prediction_and_attribution", json={"smiles": "c1ccccc1"}),
+                    client.post(
+                        "/gnn-xai/prediction_and_attribution", json={"smiles": "CCO"}
+                    ),
+                    client.post(
+                        "/gnn-xai/prediction_and_attribution", json={"smiles": "CC(C)O"}
+                    ),
+                    client.post(
+                        "/gnn-xai/prediction_and_attribution",
+                        json={"smiles": "c1ccccc1"},
+                    ),
                 )
 
             for resp in responses:
@@ -153,7 +167,9 @@ def test_e2e_openapi_schema_and_docs_endpoints() -> None:
         schema = openapi_resp.json()
         assert "/gnn-xai/prediction_and_attribution" in schema["paths"]
 
-        post_responses = schema["paths"]["/gnn-xai/prediction_and_attribution"]["post"]["responses"]
+        post_responses = schema["paths"]["/gnn-xai/prediction_and_attribution"]["post"][
+            "responses"
+        ]
         assert "200" in post_responses
         assert "422" in post_responses
         assert "500" in post_responses

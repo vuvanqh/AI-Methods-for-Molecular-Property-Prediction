@@ -71,11 +71,15 @@ def test_ig_scores_match_when_atoms_are_mapped_across_equivalent_smiles(
     res_b = chemprop_predictor.predict(mol_b)
 
     scores_a = torch.tensor(
-        explainer.explain(res_a["atom_embeddings"], res_a["mol_graph_index"], num_targets=TASKS_NUMBER),
+        explainer.explain(
+            res_a["atom_embeddings"], res_a["mol_graph_index"], num_targets=TASKS_NUMBER
+        ),
         dtype=torch.float32,
     )
     scores_b = torch.tensor(
-        explainer.explain(res_b["atom_embeddings"], res_b["mol_graph_index"], num_targets=TASKS_NUMBER),
+        explainer.explain(
+            res_b["atom_embeddings"], res_b["mol_graph_index"], num_targets=TASKS_NUMBER
+        ),
         dtype=torch.float32,
     )
 
@@ -93,33 +97,49 @@ def test_ig_explainer_input_validation_guardrails() -> None:
     explainer = IntegratedGradientsExplainer(predictor=dummy_predictor, steps=5)
 
     # 1. None or non-Tensor atom_embeddings
-    with pytest.raises(ModelInferenceError, match="atom_embeddings must be a valid torch.Tensor"):
+    with pytest.raises(
+        ModelInferenceError, match="atom_embeddings must be a valid torch.Tensor"
+    ):
         explainer.explain(None, torch.zeros(3, dtype=torch.long), num_targets=2)
 
-    with pytest.raises(ModelInferenceError, match="atom_embeddings must be a valid torch.Tensor"):
+    with pytest.raises(
+        ModelInferenceError, match="atom_embeddings must be a valid torch.Tensor"
+    ):
         explainer.explain([[1.0, 2.0]], torch.zeros(1, dtype=torch.long), num_targets=2)
 
     # 2. Non-2D atom_embeddings
     with pytest.raises(ModelInferenceError, match="atom_embeddings must be 2D"):
-        explainer.explain(torch.ones(3), torch.zeros(3, dtype=torch.long), num_targets=2)
+        explainer.explain(
+            torch.ones(3), torch.zeros(3, dtype=torch.long), num_targets=2
+        )
 
     with pytest.raises(ModelInferenceError, match="atom_embeddings must be 2D"):
-        explainer.explain(torch.ones((1, 3, 8)), torch.zeros(3, dtype=torch.long), num_targets=2)
+        explainer.explain(
+            torch.ones((1, 3, 8)), torch.zeros(3, dtype=torch.long), num_targets=2
+        )
 
     # 3. 0 atoms
-    with pytest.raises(ModelInferenceError, match="Cannot explain molecule with 0 atom embeddings"):
-        explainer.explain(torch.ones((0, 8)), torch.zeros(0, dtype=torch.long), num_targets=2)
+    with pytest.raises(
+        ModelInferenceError, match="Cannot explain molecule with 0 atom embeddings"
+    ):
+        explainer.explain(
+            torch.ones((0, 8)), torch.zeros(0, dtype=torch.long), num_targets=2
+        )
 
     # 4. mol_graph_index None or length mismatch
     with pytest.raises(ModelInferenceError, match="mol_graph_index shape mismatch"):
         explainer.explain(torch.ones((3, 8)), None, num_targets=2)
 
     with pytest.raises(ModelInferenceError, match="mol_graph_index shape mismatch"):
-        explainer.explain(torch.ones((3, 8)), torch.zeros(5, dtype=torch.long), num_targets=2)
+        explainer.explain(
+            torch.ones((3, 8)), torch.zeros(5, dtype=torch.long), num_targets=2
+        )
 
     # 5. Non-positive num_targets
     with pytest.raises(ModelInferenceError, match="num_targets must be positive"):
-        explainer.explain(torch.ones((3, 8)), torch.zeros(3, dtype=torch.long), num_targets=0)
+        explainer.explain(
+            torch.ones((3, 8)), torch.zeros(3, dtype=torch.long), num_targets=0
+        )
 
 
 @pytest.mark.fast_rdkit
@@ -129,14 +149,22 @@ def test_ig_explainer_output_shape_and_nan_guardrails() -> None:
 
     # 1. Captum returns wrong attribution tensor shape
     with patch("src.xai.integrated_gradients.IntegratedGradients") as mock_ig_cls:
-        mock_ig_cls.return_value.attribute.return_value = torch.ones((1, 5, 8))  # 5 atoms instead of 3
+        mock_ig_cls.return_value.attribute.return_value = torch.ones(
+            (1, 5, 8)
+        )  # 5 atoms instead of 3
         with pytest.raises(ModelInferenceError, match="Captum attribution shape"):
-            explainer.explain(torch.ones((3, 8)), torch.zeros(3, dtype=torch.long), num_targets=1)
+            explainer.explain(
+                torch.ones((3, 8)), torch.zeros(3, dtype=torch.long), num_targets=1
+            )
 
     # 2. Captum returns NaN attribution
     with patch("src.xai.integrated_gradients.IntegratedGradients") as mock_ig_cls:
         nan_attr = torch.ones((1, 3, 8))
         nan_attr[0, 1, 2] = float("nan")
         mock_ig_cls.return_value.attribute.return_value = nan_attr
-        with pytest.raises(ModelInferenceError, match="NaN or Inf detected in attribution scores"):
-            explainer.explain(torch.ones((3, 8)), torch.zeros(3, dtype=torch.long), num_targets=1)
+        with pytest.raises(
+            ModelInferenceError, match="NaN or Inf detected in attribution scores"
+        ):
+            explainer.explain(
+                torch.ones((3, 8)), torch.zeros(3, dtype=torch.long), num_targets=1
+            )
