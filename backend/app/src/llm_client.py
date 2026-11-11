@@ -1,3 +1,5 @@
+import ssl
+
 import httpx
 from .core.config import settings
 
@@ -11,7 +13,9 @@ class LLMClient:
 
         try:
             async with httpx.AsyncClient(
-                timeout=settings.llm_timeout_seconds
+                timeout=settings.llm_timeout_seconds,
+                # the system trust store, since certifi misses the root re-signing HTTPS here
+                verify=ssl.create_default_context(),
             ) as client:
                 response_body = {
                     "max_tokens": settings.llm_max_tokens,
@@ -42,6 +46,10 @@ class LLMClient:
             answer = result["choices"][0]["message"]["content"]
         except Exception as _:
             raise RuntimeError("Obtained unexpected response format")
+
+        if not answer:
+            # reasoning models can spend the whole token budget before writing any content
+            raise RuntimeError("LLM returned an empty summary")
 
         return answer
 
