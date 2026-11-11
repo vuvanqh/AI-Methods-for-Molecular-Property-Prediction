@@ -27,7 +27,7 @@ describe("analysis flow", () => {
 
         await waitFor(() => expect(router.state.location.pathname).toBe("/CCO"));
         // the query starts when the results page mounts, which is when the loading state appears
-        expect(await screen.findByText("Loading molecular structure…")).toHaveAttribute("aria-busy", "true");
+        expect((await screen.findByText("Loading molecular structure…")).closest(".analysis-loader")).toHaveAttribute("aria-busy", "true");
         expect(fetch).toHaveBeenCalledOnce();
         expect(requestBody(fetch)).toEqual({ smiles: "CCO" });
         expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument(); // landing hero gone
