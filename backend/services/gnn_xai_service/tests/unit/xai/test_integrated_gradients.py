@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch
+
 import pytest
 import torch
 from rdkit import Chem
@@ -7,7 +8,6 @@ from src.config import TASKS_NUMBER
 from src.exceptions import ModelInferenceError
 from src.gnn_models.chemprop import Chemprop
 from src.xai.integrated_gradients import IntegratedGradientsExplainer
-
 
 # =====================================================================
 # 1. IntegratedGradientsExplainer.explain — Happy Paths

@@ -1,8 +1,10 @@
 import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+
 from .controller import gnn_router
 from .service import MolecularInferenceService
-from contextlib import asynccontextmanager
 
 
 @asynccontextmanager

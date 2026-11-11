@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch
+
 import pytest
 import torch
 from rdkit import Chem
@@ -6,7 +7,6 @@ from rdkit import Chem
 from src.config import TASKS, TASKS_NUMBER
 from src.exceptions import ModelInferenceError, MoleculeValidationError
 from src.service import MolecularInferenceService
-
 
 # =====================================================================
 # 1. MolecularInferenceService.predict_and_explain — Happy Paths
