@@ -1,0 +1,29 @@
+[project]
+name = "gnn-experiments"
+version = "0.1.0"
+description = "Standalone multi-task GNN training, MLflow tracking, and offline evaluation."
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "chemprop>=2.3.1",
+    "matplotlib>=3.9.0",
+    "mlflow>=2.17.0",
+    "numpy>=2.0.0",
+    "pandas>=2.2.0",
+    "pytdc==0.4.0",
+    "rdkit>=2024.3.5",
+    "scikit-learn>=1.5.0",
+    "setuptools<81",
+    "torch>=2.4.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+]
+
+[tool.uv]
+package = false
+# PyTDC 0.4.0 lists legacy `rdkit-pypi`, which is superseded by `rdkit` on Python 3.13+
+override-dependencies = [
+    "rdkit-pypi ; python_version < '0'",
+]
