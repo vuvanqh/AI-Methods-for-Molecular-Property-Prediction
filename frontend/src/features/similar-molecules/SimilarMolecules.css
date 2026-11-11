@@ -18,7 +18,13 @@
 }
 
 .similar-molecules-list {
+  /* .similar-molecule-item: 2 × 24px padding + one 19px score line at body line-height 1.55 + hairline */
+  --row-height: calc(2 * var(--s-6) + 19px * 1.55 + 1px);
+  --visible-rows: 5;
   flex: 1;
+  max-height: calc(var(--row-height) * var(--visible-rows));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .similar-molecule-item {
