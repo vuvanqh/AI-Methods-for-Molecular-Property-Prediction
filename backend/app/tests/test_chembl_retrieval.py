@@ -3,8 +3,8 @@ from functools import partial
 
 import httpx
 
-from src import chembl_client as chembl_client_module
-from src.chembl_client import ChEMBLClient
+from src.clients import ChEMBLClient
+from src.clients import client as client_module
 from src.rag.augmentation import ChemblRetrieval
 
 
@@ -51,10 +51,20 @@ class FakeClient:
 def test_activity_is_joined_with_document_and_converted():
     client = FakeClient(
         [activity()],
-        [{"document_chembl_id": "DOC1", "title": "hERG paper", "abstract": "", "year": 2001, "doi": "10.1/x"}],
+        [
+            {
+                "document_chembl_id": "DOC1",
+                "title": "hERG paper",
+                "abstract": "",
+                "year": 2001,
+                "doi": "10.1/x",
+            }
+        ],
     )
 
-    [evidence] = asyncio.run(ChemblRetrieval(client).retrieve_molecular_evidence("CHEMBL1"))
+    [evidence] = asyncio.run(
+        ChemblRetrieval(client).retrieve_molecular_evidence("CHEMBL1")
+    )
 
     assert evidence.provider == "ChEMBL"
     assert evidence.target_name == "KCNH2"
@@ -68,7 +78,9 @@ def test_activity_is_joined_with_document_and_converted():
 def test_activity_without_document_has_no_url():
     client = FakeClient([activity(document=None)])
 
-    [evidence] = asyncio.run(ChemblRetrieval(client).retrieve_molecular_evidence("CHEMBL1"))
+    [evidence] = asyncio.run(
+        ChemblRetrieval(client).retrieve_molecular_evidence("CHEMBL1")
+    )
 
     assert evidence.document_url is None
     assert client.calls[-1] == ("documents", [])
@@ -78,7 +90,9 @@ def test_activities_survive_a_failed_document_lookup():
     client = FakeClient([activity()])
     client.get_documents = _raise_connection_error
 
-    [evidence] = asyncio.run(ChemblRetrieval(client).retrieve_molecular_evidence("CHEMBL1"))
+    [evidence] = asyncio.run(
+        ChemblRetrieval(client).retrieve_molecular_evidence("CHEMBL1")
+    )
 
     assert evidence.value == 14.0
     assert evidence.document_title is None
@@ -99,9 +113,14 @@ def test_chembl_id_skips_smiles_lookup():
 def test_smiles_is_resolved_to_chembl_id():
     client = FakeClient(smiles_hit="CHEMBL25")
 
-    asyncio.run(ChemblRetrieval(client).retrieve_molecular_evidence("CC(=O)Oc1ccccc1C(=O)O"))
+    asyncio.run(
+        ChemblRetrieval(client).retrieve_molecular_evidence("CC(=O)Oc1ccccc1C(=O)O")
+    )
 
-    assert client.calls[:2] == [("find", "CC(=O)Oc1ccccc1C(=O)O"), ("activities", "CHEMBL25")]
+    assert client.calls[:2] == [
+        ("find", "CC(=O)Oc1ccccc1C(=O)O"),
+        ("activities", "CHEMBL25"),
+    ]
 
 
 def test_smiles_unknown_to_chembl_returns_nothing():
@@ -113,7 +132,7 @@ def test_smiles_unknown_to_chembl_returns_nothing():
 
 def fake_api(monkeypatch, handler):
     monkeypatch.setattr(
-        chembl_client_module.httpx,
+        client_module.httpx,
         "AsyncClient",
         partial(httpx.AsyncClient, transport=httpx.MockTransport(handler)),
     )
@@ -122,12 +141,17 @@ def fake_api(monkeypatch, handler):
 
 def test_client_follows_every_page(monkeypatch):
     pages = {
-        "0": {"activities": [{"id": 1}], "page_meta": {"next": "/chembl/api/data/activity.json?offset=1"}},
+        "0": {
+            "activities": [{"id": 1}],
+            "page_meta": {"next": "/chembl/api/data/activity.json?offset=1"},
+        },
         "1": {"activities": [{"id": 2}], "page_meta": {"next": None}},
     }
     client = fake_api(
         monkeypatch,
-        lambda request: httpx.Response(200, json=pages[request.url.params.get("offset", "0")]),
+        lambda request: httpx.Response(
+            200, json=pages[request.url.params.get("offset", "0")]
+        ),
     )
 
     assert asyncio.run(client.get_activities("CHEMBL1")) == [{"id": 1}, {"id": 2}]

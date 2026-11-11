@@ -5,10 +5,10 @@ import numpy as np
 import pytest
 from sqlalchemy.dialects import postgresql
 
+from src.rag import Retriever
 from src.rag.embeddings import unimol_embeddings as unimol_module
 from src.rag.embeddings.base_embeddings import BaseEmbeddings
 from src.rag.embeddings.unimol_embeddings import UniMolEmbeddings
-from src.rag.molecule_retrieval import create_retriever
 from src.rag.result_types.retrieved_molecules import RetrievedMolecule
 from src.rag.retrieval import (
     FingerprintRetrieval,
@@ -124,23 +124,30 @@ def test_retrievers_exclude_the_input_molecule(make_retriever):
 
 
 def test_create_retriever_fingerprint_needs_no_model():
-    retriever = create_retriever(RetrievalType.FINGERPRINT, MagicMock())
+    retriever = Retriever(RetrievalType.FINGERPRINT).create_retriever(MagicMock())
 
     assert isinstance(retriever, FingerprintRetrieval)
 
 
-@pytest.mark.parametrize("retrieval_type", [RetrievalType.SEMANTIC, RetrievalType.FUSION])
-def test_create_retriever_requires_model(retrieval_type):
+@pytest.mark.parametrize(
+    "retrieval_type", [RetrievalType.SEMANTIC, RetrievalType.FUSION]
+)
+def test_retriever_requires_model(retrieval_type):
     with pytest.raises(ValueError):
-        create_retriever(retrieval_type, MagicMock())
+        Retriever(retrieval_type)
 
 
 @pytest.mark.parametrize(
     ("retrieval_type", "expected"),
-    [(RetrievalType.SEMANTIC, SemanticRetrieval), (RetrievalType.FUSION, HybridRetrieval)],
+    [
+        (RetrievalType.SEMANTIC, SemanticRetrieval),
+        (RetrievalType.FUSION, HybridRetrieval),
+    ],
 )
 def test_create_retriever_returns_matching_strategy(retrieval_type, expected):
-    retriever = create_retriever(retrieval_type, MagicMock(), FakeEmbeddings())
+    retriever = Retriever(retrieval_type, FakeEmbeddings()).create_retriever(
+        MagicMock()
+    )
 
     assert isinstance(retriever, expected)
 
