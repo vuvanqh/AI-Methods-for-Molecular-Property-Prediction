@@ -1,0 +1,6 @@
+node_modules
+dist
+test-results
+playwright-report
+.vite
+# e2e/ stays: tsconfig.json references tsconfig.e2e.json, and tsc -b fails if it globs nothing
