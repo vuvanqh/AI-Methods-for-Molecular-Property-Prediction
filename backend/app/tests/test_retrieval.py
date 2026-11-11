@@ -107,7 +107,7 @@ def test_hybrid_fetches_three_times_top_k_and_returns_top_k():
 @pytest.mark.parametrize(
     "make_retriever",
     [
-        lambda db: FingerprintRetrieval(db),
+        FingerprintRetrieval,
         lambda db: SemanticRetrieval(db, FakeEmbeddings()),
     ],
     ids=["fingerprint", "semantic"],
