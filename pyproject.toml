@@ -33,6 +33,11 @@ name = "pytorch-cu130"
 url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
+
 [tool.uv]
 # not an installable package (src/ was removed): the root env just runs scripts/ and alembic
 package = false

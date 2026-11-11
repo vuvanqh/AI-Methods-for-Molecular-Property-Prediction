@@ -120,6 +120,7 @@
         "id": "03h3awurf5mwdvtgt7sc4e9w8",
         "tableId": "03h3aw1q9o0uxk0qipj583875",
         "name": "source_identifier",
+        "comment": "e.g., ChEMBL ID",
         "dataType": "text",
         "options": 8
       },

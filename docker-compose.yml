@@ -3,7 +3,7 @@ services:
     image: pgvector/pgvector:pg17  # includes postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres  
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: molecules
     ports:
       - "127.0.0.1:5433:5432"  # 5433 on the host: a native PostgreSQL service already owns 5432
@@ -13,6 +13,40 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres -d molecules"]
       interval: 5s
       retries: 10
+
+  gnn-xai:
+    build: ./backend/services/gnn_xai_service
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      # the model is built at startup, so readiness lags the container by a few seconds
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/gnn-xai/docs')\""]
+      interval: 10s
+      retries: 10
+      start_period: 60s
+
+  api:
+    build: ./backend/app
+    environment:
+      # 5432 is the port inside the compose network; 5433 is only the host mapping
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/molecules
+      GNN_SERVICE_URL: http://gnn-xai:8000/gnn-xai
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set it in .env}
+      LLM_MODEL: ${LLM_MODEL:-nvidia/nemotron-3-ultra-550b-a55b:free}
+    ports:
+      - "127.0.0.1:8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+      gnn-xai:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:5173:80"  # same port as the vite dev server
+    depends_on:
+      - api
 
 volumes:
   pgdata:

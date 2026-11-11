@@ -16,7 +16,7 @@ def standardize_smiles(smiles: str) -> str | None:
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return None
-    
+
     # fingerprints are to serve as a structural similarity indicator so comparing parent molecular structures should be sufficient
     mol = rdMolStandardize.Cleanup(mol)
 
