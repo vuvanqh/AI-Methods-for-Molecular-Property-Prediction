@@ -47,7 +47,9 @@ def test_e2e_post_valid_smiles_returns_200_and_valid_schema(
 
     for task in TASKS:
         prob = validated.probabilities[task]
-        assert validated.predictions[task] is (prob > BINARY_PREDICTION_THRESHOLDS[task])
+        assert validated.predictions[task] is (
+            prob > BINARY_PREDICTION_THRESHOLDS[task]
+        )
 
         task_scores = validated.atomscores[task]
         assert len(task_scores) == expected_total_atoms
@@ -119,11 +121,19 @@ def test_e2e_post_schema_validation_errors_return_422(
 def test_e2e_concurrent_requests_succeed_safely(client: TestClient) -> None:
     async def _run_concurrent_test() -> None:
         transport = httpx.ASGITransport(app=client.app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as async_client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver"
+        ) as async_client:
             responses = await asyncio.gather(
-                async_client.post("/gnn-xai/prediction_and_attribution", json={"smiles": "CCO"}),
-                async_client.post("/gnn-xai/prediction_and_attribution", json={"smiles": "CC(C)O"}),
-                async_client.post("/gnn-xai/prediction_and_attribution", json={"smiles": "c1ccccc1"}),
+                async_client.post(
+                    "/gnn-xai/prediction_and_attribution", json={"smiles": "CCO"}
+                ),
+                async_client.post(
+                    "/gnn-xai/prediction_and_attribution", json={"smiles": "CC(C)O"}
+                ),
+                async_client.post(
+                    "/gnn-xai/prediction_and_attribution", json={"smiles": "c1ccccc1"}
+                ),
             )
 
         for resp in responses:
@@ -139,7 +149,9 @@ def test_e2e_openapi_schema_and_docs_endpoints(client: TestClient) -> None:
     schema = openapi_resp.json()
     assert "/gnn-xai/prediction_and_attribution" in schema["paths"]
 
-    post_responses = schema["paths"]["/gnn-xai/prediction_and_attribution"]["post"]["responses"]
+    post_responses = schema["paths"]["/gnn-xai/prediction_and_attribution"]["post"][
+        "responses"
+    ]
     assert "200" in post_responses
     assert "422" in post_responses
     assert "500" in post_responses

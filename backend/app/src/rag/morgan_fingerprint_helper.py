@@ -1,4 +1,3 @@
-
 from rdkit import Chem, DataStructs
 from rdkit.Chem import rdFingerprintGenerator
 
@@ -47,10 +46,10 @@ def generate_morgan_fingerprint(smiles: str) -> DataStructs.ExplicitBitVect:
     mol = smiles_to_mol(smiles)
 
     morgan_generator = rdFingerprintGenerator.GetMorganGenerator(
-    radius=MORGAN_FINGERPRINT_RADIUS,
-    includeChirality=True,
-    fpSize=MORGAN_FINGERPRINT_SIZE
-)
+        radius=MORGAN_FINGERPRINT_RADIUS,
+        includeChirality=True,
+        fpSize=MORGAN_FINGERPRINT_SIZE,
+    )
     return morgan_generator.GetFingerprint(mol)
 
 
@@ -62,10 +61,8 @@ def fingerprint_to_bitstring(fingerprint):
     return fingerprint.ToBitString()
 
 
-def bitstring_to_fingerprint(bitstring): # is it used anywhere? todo
+def bitstring_to_fingerprint(bitstring):  # is it used anywhere? todo
     """
     Reconstruct RDKit fingerprint from PostgreSQL BIT.
     """
     return DataStructs.CreateFromBitString(bitstring)
-
-

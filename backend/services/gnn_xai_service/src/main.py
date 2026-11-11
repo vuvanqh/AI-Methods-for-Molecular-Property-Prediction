@@ -17,7 +17,9 @@ async def lifespan(app: FastAPI):
     thresholds = [BINARY_PREDICTION_THRESHOLDS[task] for task in TASKS]
     predictor = Chemprop(TASKS_NUMBER, DEVICE, thresholds)
     explainer = IntegratedGradientsExplainer(predictor=predictor, steps=IG_STEPS)
-    app.state.inference_service = MolecularInferenceService(predictor=predictor, explainer=explainer)
+    app.state.inference_service = MolecularInferenceService(
+        predictor=predictor, explainer=explainer
+    )
     # Lock to ensure only 1 request at a time executes the PyTorch model
     app.state.inference_lock = asyncio.Lock()
 
@@ -29,7 +31,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="GNN and XAI Service", docs_url="/gnn-xai/docs", redoc_url="/gnn-xai/redoc", lifespan=lifespan
+    title="GNN and XAI Service",
+    docs_url="/gnn-xai/docs",
+    redoc_url="/gnn-xai/redoc",
+    lifespan=lifespan,
 )
 
 app.include_router(gnn_router, prefix="/gnn-xai")

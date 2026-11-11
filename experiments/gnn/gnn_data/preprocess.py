@@ -45,7 +45,7 @@ def fetch_raw_tdc_datasets(raw_dir: Path) -> dict[str, pd.DataFrame]:
     raw_dfs: dict[str, pd.DataFrame] = {}
 
     label_list = retrieve_label_name_list("Tox21")
-    
+
     for label in label_list:
         data = Tox(name="Tox21", label_name=label, path=str(raw_dir))
         raw_dfs[label] = data.get_data()[["Drug", "Y"]].astype({"Y": int})
@@ -86,7 +86,7 @@ def build_clean_merged_dataframe(
         raw_to_canon[s] = canon_smiles
         if canon_smiles not in canon_to_scaffold:
             canon_to_scaffold[canon_smiles] = MurckoScaffold.MurckoScaffoldSmiles(
-                mol=mol, includeChirality=False 
+                mol=mol, includeChirality=False
             )
 
     task_series: dict[str, pd.Series] = {}
@@ -94,8 +94,10 @@ def build_clean_merged_dataframe(
         df = raw_dfs[task]
         df_val = df[df["Drug"].isin(raw_to_canon)].copy()
         df_val["smiles"] = df_val["Drug"].map(raw_to_canon)
-        task_series[task] = df_val.drop_duplicates("smiles").set_index("smiles")["Y"].astype(int)
-        
+        task_series[task] = (
+            df_val.drop_duplicates("smiles").set_index("smiles")["Y"].astype(int)
+        )
+
     merged_df = pd.DataFrame(task_series)[ALL_TASKS].sort_index()
     merged_df.index.name = "smiles"
     merged_df = merged_df.reset_index()
@@ -138,7 +140,9 @@ def assign_buckets_to_smiles(
         best_b, best_cost = 0, float("inf")
 
         for b in range(n_buckets):
-            fill_ratio = (bucket_current_counts[b] + scaffold_label_counts) / bucket_target_counts[b]
+            fill_ratio = (
+                bucket_current_counts[b] + scaffold_label_counts
+            ) / bucket_target_counts[b]
             cost = float(np.mean(fill_ratio[active_cols]))
             if cost < best_cost:
                 best_cost, best_b = cost, b
@@ -149,7 +153,9 @@ def assign_buckets_to_smiles(
     return bucket_ids
 
 
-def compute_train_weights(train_df: pd.DataFrame) -> tuple[dict[str, float], dict[str, float]]:
+def compute_train_weights(
+    train_df: pd.DataFrame,
+) -> tuple[dict[str, float], dict[str, float]]:
     """
     Compute within-task positive class weights (`pos_weights = N_neg / N_pos`) and across-task
     sample-size weights (`task_weights`, inverse training sample count divided by mean of all inverses).
@@ -166,7 +172,9 @@ def compute_train_weights(train_df: pd.DataFrame) -> tuple[dict[str, float], dic
 
     inv_counts = {task: 1.0 / max(counts, 1) for task, counts in train_counts.items()}
     mean_inv = sum(inv_counts.values()) / len(ALL_TASKS)
-    task_weights = {task: round(inv_count / mean_inv, 4) for task, inv_count in inv_counts.items()}
+    task_weights = {
+        task: round(inv_count / mean_inv, 4) for task, inv_count in inv_counts.items()
+    }
     return pos_weights, task_weights
 
 
@@ -183,8 +191,16 @@ def compute_weights_and_metadata(
         column_cleaned_train = train_df[task].dropna()
         column_cleaned_val = valid_df[task].dropna()
         column_cleaned_test = test_df[task].dropna()
-        num_total = len(column_cleaned_train) + len(column_cleaned_val) + len(column_cleaned_test)
-        num_pos_total = int((column_cleaned_train == 1).sum()) + int((column_cleaned_val == 1).sum()) + int((column_cleaned_test == 1).sum())
+        num_total = (
+            len(column_cleaned_train)
+            + len(column_cleaned_val)
+            + len(column_cleaned_test)
+        )
+        num_pos_total = (
+            int((column_cleaned_train == 1).sum())
+            + int((column_cleaned_val == 1).sum())
+            + int((column_cleaned_test == 1).sum())
+        )
 
         properties_meta[task] = {
             "total_count": num_total,
@@ -239,7 +255,9 @@ def preprocess_datasets(
     """
     base_dir = Path(__file__).resolve().parent
     raw_path = Path(raw_dir) if raw_dir is not None else base_dir / "data" / "raw"
-    out_path = Path(output_dir) if output_dir is not None else base_dir / "data" / "processed"
+    out_path = (
+        Path(output_dir) if output_dir is not None else base_dir / "data" / "processed"
+    )
 
     merged_df = build_clean_merged_dataframe(
         raw_dir=raw_path,
@@ -297,7 +315,9 @@ def preprocess_cv_datasets(
     """
     base_dir = Path(__file__).resolve().parent
     raw_path = Path(raw_dir) if raw_dir is not None else base_dir / "data" / "raw"
-    out_path = Path(output_dir) if output_dir is not None else base_dir / "data" / "processed"
+    out_path = (
+        Path(output_dir) if output_dir is not None else base_dir / "data" / "processed"
+    )
 
     merged_df = build_clean_merged_dataframe(
         raw_dir=raw_path,
@@ -325,13 +345,15 @@ def preprocess_cv_datasets(
         f_valid_df = full_for_folds_df[fold_ids == k][model_cols].reset_index(drop=True)
         pos_weight_k, task_weight_k = compute_train_weights(f_train_df)
 
-        folds.append({
-            "fold": k,
-            "train_df": f_train_df,
-            "valid_df": f_valid_df,
-            "pos_weights": pos_weight_k,
-            "task_weights": task_weight_k,
-        })
+        folds.append(
+            {
+                "fold": k,
+                "train_df": f_train_df,
+                "valid_df": f_valid_df,
+                "pos_weights": pos_weight_k,
+                "task_weights": task_weight_k,
+            }
+        )
         fold_val_counts[k] = len(f_valid_df)
 
     properties_meta: dict[str, dict] = {}
@@ -392,7 +414,7 @@ def main() -> None:
         help="Perform cross-validation.",
     )
     parser.add_argument("--n-folds", type=int, default=5, help="Number of CV folds.")
-    
+
     args = parser.parse_args()
 
     if args.cross_validation:
@@ -415,6 +437,7 @@ def main() -> None:
             f"Fixed Split: total={meta['split_counts']['total']:,} "
             f"(train={len(train_df):,}, valid={len(valid_df):,}, test={len(test_df):,})"
         )
+
 
 if __name__ == "__main__":
     main()

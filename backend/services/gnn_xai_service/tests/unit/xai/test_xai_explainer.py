@@ -25,8 +25,6 @@ class _StubPredictor(GNNPredictor):
         return torch.stack([total, -2.0 * total]).unsqueeze(0)
 
 
-
-
 def test_xai_explainer_interface_cannot_be_instantiated_without_explain() -> None:
     class IncompleteExplainer(XAIExplainer):
         pass
@@ -40,12 +38,13 @@ def test_ig_explainer_implements_xai_explainer_interface() -> None:
     assert isinstance(explainer, XAIExplainer)
 
 
-
 def test_ig_explainer_zero_embeddings_produce_zero_attributions() -> None:
     explainer = IntegratedGradientsExplainer(predictor=_StubPredictor(), steps=10)
     zero_embeddings = torch.zeros((3, 2), dtype=torch.float32)
 
-    scores = torch.tensor(explainer.explain(atom_embeddings=zero_embeddings, num_targets=2))
+    scores = torch.tensor(
+        explainer.explain(atom_embeddings=zero_embeddings, num_targets=2)
+    )
 
     torch.testing.assert_close(scores, torch.zeros((2, 3), dtype=torch.float32))
 
@@ -66,8 +65,8 @@ def test_ig_explainer_computes_expected_per_atom_scores() -> None:
 
     expected = torch.tensor(
         [
-            [3.0, 0.0, -0.5],   # target 0: 1x atom sum
-            [-6.0, 0.0, 1.0],   # target 1: -2x atom sum
+            [3.0, 0.0, -0.5],  # target 0: 1x atom sum
+            [-6.0, 0.0, 1.0],  # target 1: -2x atom sum
         ],
         dtype=torch.float32,
     )
@@ -91,8 +90,9 @@ def test_ig_explainer_preserves_atom_order_when_rows_are_swapped() -> None:
         explainer.explain(atom_embeddings=embeddings[swapped_order], num_targets=2)
     )
 
-    torch.testing.assert_close(swapped_scores, scores[:, swapped_order], rtol=1e-5, atol=1e-6)
-
+    torch.testing.assert_close(
+        swapped_scores, scores[:, swapped_order], rtol=1e-5, atol=1e-6
+    )
 
 
 @pytest.mark.parametrize(
@@ -117,6 +117,8 @@ def test_ig_explainer_rejects_invalid_inputs(
 
 
 def test_ig_explainer_raises_model_inference_error_on_nan_attributions() -> None:
-    explainer = IntegratedGradientsExplainer(predictor=_StubPredictor(return_nan=True), steps=5)
+    explainer = IntegratedGradientsExplainer(
+        predictor=_StubPredictor(return_nan=True), steps=5
+    )
     with pytest.raises(ModelInferenceError):
         explainer.explain(torch.ones((3, 2), dtype=torch.float32), num_targets=1)
