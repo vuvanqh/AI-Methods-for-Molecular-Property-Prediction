@@ -17,6 +17,7 @@ As a result, no component contains animation code. Motion is driven from one hoo
 | `frontend/src/index.css` | fonts, design tokens, base styles, shared utility classes |
 | `frontend/src/styles/motion.ts` | all page motion: the `useAnalysisMotion` hook |
 | `frontend/src/styles/molecule3d.ts` | decorative SVG 3D molecule renderer for the landing page |
+| `frontend/src/styles/loader.ts` | the analysis loader: a GNN pipeline sketch shown while the request is pending |
 | `frontend/src/pages/AnalysisPage.css` | page shell: landing and results layout, molecule field, results heading, card grid |
 | `frontend/src/components/layout/Navbar.css` | sticky top bar |
 | `frontend/src/features/smiles-input/SmilesInput.css` | SMILES input bar |
@@ -165,6 +166,7 @@ This is CSS only; the component has not been built yet. The header comment of th
     - `__stats`, a 2×2 `<dl>` with hairline dividers, styled with `__stat-label` and `__stat-value`;
     - `__legend`, whose `li[data-atom="C|O|N|H"]` items get a coloured dot from the atom tokens.
 - `.molecule-overview--placeholder`: the 340px dot-grid panel shown while the analysis loads (`aria-busy="true"`, the text pulses gently) and when it fails (`role="alert"`, shows the API's message).
+- `.molecule-overview--placeholder`: the 340px dot-grid panel. While the analysis loads it also carries `.analysis-loader` (see [Analysis loader](#analysis-loader)); when the analysis fails it shows the API's message (`role="alert"`).
 - The loaded card fades and rises in (0.6s CSS animation), so it doesn't pop in over the placeholder.
 - The 3Dmol viewer reads its atom colours from the `--atom-*` tokens, so the model and the legend always match.
 
@@ -267,6 +269,7 @@ These are the class names and attributes that motion looks for. Removing or rena
 | `[data-animate="stagger"]` | a list whose **children** stagger in, including lists that mount later (a `MutationObserver` reveals them when the analysis response arrives) |
 | `[data-animate="count"][data-value]` | a number that counts up from 0 to `data-value` (must be inside a `stagger` list) |
 | `.property-family-select` | a `change` event on it re-staggers the rows of its card |
+| `[data-animate="loader"]` | receives the [analysis loader](#analysis-loader), whether it is on the page when the hook mounts (a direct link to `/:smiles`) or appears later (a `MutationObserver`). Mounted with reduced motion too, as a still frame. Optional `data-smiles` and `data-molecule` |
 
 Where these are currently set in the components:
 
@@ -276,6 +279,7 @@ Where these are currently set in the components:
 | `PropertyItem` | `data-animate="count" data-value={property.confidence}` on `.property-confidence` |
 | `SimilarMoleculesCard` | `<ul className="similar-molecules-list" data-animate="stagger">` |
 | `SimilarMoleculeItem` | `data-animate="count" data-value={score}` on `.similar-molecule-score` |
+| `AnalysisResultsPage` | `data-animate="loader" data-smiles={smiles}` on the loading `div`, which holds the `.analysis-loader__status` line |
 | `AnalysisPage` | the `.molecule-field` block with ten `.molecule-field__item` slots, two of them with the `--backdrop` modifier (always rendered, on landing and results) |
 
 ### Timelines
@@ -325,6 +329,7 @@ Runs when `analysisStarted` becomes `true`.
 | 0 | SMILES bar | Flip glide from the recorded centre position to the bottom (`power3.inOut`) | 0.7 | – |
 | 0.05 | `.analysis-hero` lines | y +18, blur 6px, hidden → in place | 0.8 | 0.08 |
 | 0.15 | `.analysis-results .card` present now (the loading placeholder) | y +24, hidden → in place | 0.8 | 0.08 |
+| 0.15 | `.analysis-results .card` present now (the analysis loader) | y +24, hidden → in place | 0.8 | 0.08 |
 
 When the response arrives, the real cards replace the placeholder:
 
@@ -366,6 +371,7 @@ The number therefore has to be **its own JSX expression**, separate from any sur
 - **The exit functions are wrapped in `contextSafe`,** so tweens created on click belong to the context and are cleaned up with it.
 - **React StrictMode:** the double mount in development is safe. The first run is reverted and disposed, then the second run mounts fresh molecules.
 - **Listeners:** a delegated `change` listener on `document` (family selector) and a `MutationObserver` on `document.body` (lists that mount later). Both are removed on unmount. The observer skips non-HTML nodes, so the molecules' constant SVG reordering costs almost nothing.
+- **Listeners:** a delegated `change` listener on `document` (family selector) and a `MutationObserver` on `document.body` (lists and analysis loaders that mount later). Both are removed on unmount, and every loader the hook mounted is disposed with them. The observer skips non-HTML nodes, so the molecules' constant SVG reordering costs almost nothing.
 - **Empty selections are skipped** (for example, no cards on the landing page), so GSAP never warns about missing targets.
 
 ### Reduced motion
@@ -373,8 +379,77 @@ When the OS has "reduce motion" enabled (`prefers-reduced-motion: reduce`):
 
 - every entrance and exit becomes a 0.2 s opacity fade, with no movement, blur, Flip glide or count-up;
 - the molecules are drawn once as a static 3D pose, with the first atom group highlighted, and do not rotate or float;
+- the analysis loader holds its attribution frame (see [Analysis loader](#analysis-loader)); its clock still counts;
 - `exitLanding` and `exitResults` still resolve, after 0.2 s;
 - in CSS, `index.css` reduces all transitions and keyframe animations to 0.01 ms.
+
+## Analysis loader
+`styles/loader.ts` draws the loading state of the results page: a 2D sketch of what the GNN does, played left to right while `POST /api/predict-properties` is pending. A molecular graph draws in, message-passing pulses run along its bonds, Integrated Gradients halos mark the atoms, and the atoms pool into a molecule vector that feeds the property heads. Like the decorative molecules, it has no framework dependency and is hidden from screen readers. The only accessible content is the status line React renders.
+
+### Markup
+The page renders only the host element and its status line:
+
+```tsx
+{isPending ? <div className="molecule-overview--placeholder analysis-loader card" aria-busy="true" data-animate="loader" data-smiles={smiles}>
+        <p className="analysis-loader__status" role="status">Loading molecular structure…</p>
+    </div>
+```
+
+| attribute | role |
+|-----------|------|
+| `data-animate="loader"` | `useAnalysisMotion` mounts the loader into this element (see [Selector contract](#selector-contract)) |
+| `data-smiles` | shown in the clock; optional |
+| `data-molecule` | optional key of `MOLECULES`; without it, one of `aspirin`, `paracetamol` or `salicylic` is picked at random (the other molecules overlap when drawn flat) |
+| `molecule-overview--placeholder` | the dot-grid panel background, and it keeps the CSS card entrance off the loader (GSAP animates it in) |
+
+`mountLoader(host, { animate })` appends three `aria-hidden` children next to the status line and returns `{ dispose, timeline }`:
+
+```
+div.analysis-loader (React)
+├─ p.analysis-loader__status            (React) "Loading molecular structure…"
+├─ div.analysis-loader__stage
+│  ├─ svg.analysis-loader__graph        viewBox 0 0 400 290: halos, atom-state glows, bonds, pulses, atoms
+│  ├─ span.analysis-loader__flow        dashed arrow
+│  ├─ div.analysis-loader__readout      "Molecule vector": 8 × 4 cells
+│  ├─ span.analysis-loader__flow
+│  └─ div.analysis-loader__readout      "Property heads": CYP1A2, CYP2C9, hERG, NR-AR, SR-ARE, BBBP
+├─ div.analysis-loader__phase           4 bars + 4 stacked captions
+└─ span.analysis-loader__clock          "<SMILES> · 4.2 s"
+```
+
+The graph uses the heavy atoms of the chosen `MOLECULES` entry (hydrogens are dropped). Molecules taller than wide are turned 90°, and the drawing is scaled to fit the viewBox (at most 56 units per Å). Each atom's halo size comes from the molecule's highlight `groups`: the first group scores 1, the second 0.65, later ones 0.4, and atoms in no group 0.15. These scores are illustrative, not model output.
+
+### Timeline
+One GSAP timeline, 9 s long, repeated until React removes the loader. The phase positions are exported as `AT` from `loader.ts`.
+
+| start (s) | phase (caption) | what happens |
+|-----------|-----------------|--------------|
+| 0 | Reading the molecule | bonds draw in (`stroke-dashoffset` on `pathLength="1"`, stagger 0.035), atoms grow from radius 0 (`back.out`), O/N labels fade in |
+| 1.1 | Passing messages between atoms | 3 rounds, 1.3 s apart: a pulse runs each way along every bond (0.9 s, `sine.inOut`); at the end of each round the atom-state glows grow brighter (radius 18 → 22 → 28, opacity 0.35 → 0.6 → 0.85) |
+| 5 | Scoring each atom | glows fade, atoms bump 15 %, yellow Integrated Gradients halos grow to `15 + 22 × score` with opacity `0.35 + 0.65 × score` |
+| 6.1 | Pooling and predicting | first arrow lights, vector cells fill column by column (0.6 s in total), second arrow lights, a warm scan sweeps each property head (stagger 0.12) |
+| 8.4 | (still phase 4) | graph, vector and arrows fade out; the loop restarts at 9 s |
+
+The property heads only show a scanning highlight, never a value, so nothing looks like a prediction before the data arrives.
+
+**Phase bars and captions stay in sync by construction.** `showPhase(i, from, to)` adds the caption tween and the bar tween at the same timeline positions. The incoming pair starts 0.15 s after its phase begins, and the outgoing pair leaves in 0.15 s, so two captions never overlap. There is no second clock, CSS animation or timer that could drift.
+
+SVG elements are animated through attributes only (`r`, `cx`, `cy`, opacity, dash offset), never transforms. This avoids GSAP measuring them with `getBBox`, which jsdom lacks.
+
+### Clock, long waits and cleanup
+- A `gsap.ticker` callback writes `<SMILES> · <seconds> s` into the clock, touching the DOM only when the text changes.
+- After 12 s it sets `data-slow` on the host. The CSS then adds "Still working. The written interpretation can take a minute or two." under the clock. The backend gives the LLM up to 300 s (`llm_timeout_seconds`), so long waits are expected.
+- The same callback is the cleanup check. React removes the host without notice, so when `host.isConnected` turns false, the loader kills its timeline, removes the ticker callback and deletes its own elements. `useAnalysisMotion` also disposes every loader it mounted when it unmounts.
+
+### Reduced motion
+The timeline is built but paused at 6 s, the attribution frame: graph drawn, halos shown, phase 3 ("Scoring each atom") visible. The clock and the slow-request line still update, since they are text, not motion.
+
+### Styles (`MoleculeOverview.css`)
+- `.analysis-loader`: a grid with the stage on top, the phase block bottom-left, and the status and clock bottom-right. It sets the landing atom palette (`--atom-c/o/n`).
+- Graph: grey bonds with round caps; atoms filled from `--atom-*` with a `--surface` outline; lavender glows blurred 6px; pulses with a lavender drop shadow. The halos copy the real viewer's XAI marks (`--xai-highlight` at 16 % fill with a solid stroke).
+- Readout: 18px vector cells whose fill alpha comes from a per-cell `--v`; head tracks with a `--warm` scan.
+- Phase block: 32 × 3px bars (lit with `--accent`), captions stacked in one grid cell.
+- ≤ 760px: only the graph is shown, centred, and the footer stacks into one column.
 
 ## Decorative 3D molecules
 `styles/molecule3d.ts` is a small renderer with no framework dependency, used only for the background of the landing page. It is purely decorative: it is unrelated to the real 3D viewer in the overview card (planned for 3Dmol.js), and it is hidden from screen readers (`aria-hidden="true"` on `.molecule-field`).

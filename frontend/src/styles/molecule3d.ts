@@ -292,7 +292,7 @@ const ATOM_VAR: Record<AtomKind, string> = { C: "--atom-c", N: "--atom-n", O: "-
 const PERSPECTIVE = 3.2; // camera distance in normalised units (molecule fits in ~0.66)
 let uid = 0;
 
-function svg<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}) {
+export function svg<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}) {
     const node = document.createElementNS(NS, tag);
     for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, String(v));
     return node;

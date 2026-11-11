@@ -22,7 +22,9 @@ export function AnalysisResultsPage() {
             <h2>Understand molecules <span className="gradient-text">beyond the structure.</span></h2>
             <Metadata className="analysis-hero-subtitle">3D molecular visualization, predicted properties, and scientific interpretation in one view.</Metadata>
         </header>
-        {isPending ? <p className="molecule-overview molecule-overview--placeholder card" aria-busy="true">Loading molecular structure…</p>
+        {isPending ? <div className="molecule-overview--placeholder analysis-loader card" aria-busy="true" data-animate="loader" data-smiles={smiles}>
+                <p className="analysis-loader__status" role="status">Loading molecular structure…</p>
+            </div>
             : isError ? <p className="molecule-overview molecule-overview--placeholder card" role="alert">{error.message}</p>
             : <AnalysisResults data={data}/>}
     </div>

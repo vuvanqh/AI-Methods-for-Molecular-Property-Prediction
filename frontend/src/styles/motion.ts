@@ -23,12 +23,15 @@
  *   [data-animate="stagger"]        list whose children stagger in (also when it mounts later, e.g. after loading)
  *   [data-animate="count"]          number counts up to `data-value`
  *   .property-family-select         changing it re-staggers the property rows
+ *   [data-animate="loader"]         analysis loading animation (loader.ts), mounted whenever it appears,
+ *                                   also with reduced motion (as a still frame); `data-smiles` shows in its clock
  */
 import gsap from "gsap";
 import { Flip } from "gsap/Flip";
 import { useGSAP } from "@gsap/react";
 import { useEffect, useRef, type RefObject } from "react";
 import { MOLECULES, mountMolecule } from "./molecule3d";
+import { mountLoader, type LoaderHandle } from "./loader";
 
 gsap.registerPlugin(useGSAP, Flip);
 
@@ -41,6 +44,7 @@ const SEL = {
     cards: ".analysis-results .card",
     lists: '[data-animate="stagger"]',
     counts: '[data-animate="count"]',
+    loader: '[data-animate="loader"]',
 };
 
 const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -150,28 +154,35 @@ export function useAnalysisMotion({ analysisStarted, scope }: Options) {
     );
 
     useEffect(() => {
-        if (prefersReducedMotion()) return;
+        const reduced = prefersReducedMotion();
+        const within = (node: HTMLElement, sel: string) => (node.matches(sel) ? [node] : [...node.querySelectorAll<HTMLElement>(sel)]);
+        const loaders: LoaderHandle[] = [];
+        const mount = (el: HTMLElement) => void loaders.push(mountLoader(el, { animate: !reduced }));
+        // the request can already be pending when this mounts (a direct link to /:smiles)
+        document.querySelectorAll<HTMLElement>(SEL.loader).forEach(mount);
+
         // re-stagger the property rows when the family selector changes (React re-renders first)
         const onChange = (e: Event) => {
             if (!(e.target instanceof Element) || !e.target.matches(".property-family-select")) return;
             const card = e.target.closest(".card");
             requestAnimationFrame(() => card?.querySelectorAll(SEL.lists).forEach((list) => revealList(list)));
         };
-        // lists that mount later (when the analysis response arrives) stagger in and count up as they appear
+        // nodes that mount later: the loader when a request starts, and lists that stagger in and count up when it resolves
         const observer = new MutationObserver((mutations) => {
             for (const m of mutations) {
                 for (const node of m.addedNodes) {
                     if (!(node instanceof HTMLElement)) continue; // skips the molecules' SVG reordering
-                    const lists = node.matches(SEL.lists) ? [node] : [...node.querySelectorAll(SEL.lists)];
-                    lists.forEach((list) => revealList(list, 0.2));
+                    within(node, SEL.loader).forEach(mount);
+                    if (!reduced) within(node, SEL.lists).forEach((list) => revealList(list, 0.2));
                 }
             }
         });
         observer.observe(document.body, { childList: true, subtree: true });
-        document.addEventListener("change", onChange);
+        if (!reduced) document.addEventListener("change", onChange);
         return () => {
             observer.disconnect();
             document.removeEventListener("change", onChange);
+            loaders.forEach((loader) => loader.dispose());
         };
     }, []);
 
