@@ -1,8 +1,9 @@
 import asyncio
 import time
-from fastapi.testclient import TestClient
+
 import httpx
 import pytest
+from fastapi.testclient import TestClient
 
 from src.config import TASKS
 from src.main import app, lifespan

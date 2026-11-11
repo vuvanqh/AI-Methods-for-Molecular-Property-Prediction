@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import uuid
+from typing import TYPE_CHECKING
+
 from pgvector.sqlalchemy import BIT
 from sqlalchemy import UUID, Text
-from sqlalchemy.orm import mapped_column, Mapped, relationship
-import uuid
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .molecule_embedding import MoleculeEmbedding

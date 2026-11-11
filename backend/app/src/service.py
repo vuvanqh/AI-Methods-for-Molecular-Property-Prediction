@@ -1,8 +1,10 @@
+from sqlalchemy.orm import Session
+
 from .descriptors import describe_molecule
 from .gnn_client import gnn_client
-from .rag.retrieval import retrieve_similar_molecules_with_sources
 from .rag.config import RAG_TOP_K, SOURCE_URL_TEMPLATES
-from sqlalchemy.orm import Session
+from .rag.retrieval import retrieve_similar_molecules_with_sources
+
 
 async def predict_properties(smiles: str, db: Session) -> dict:
     molecule = describe_molecule(smiles)  # rejects invalid SMILES before the expensive GNN call
