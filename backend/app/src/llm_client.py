@@ -1,6 +1,7 @@
 import ssl
 
 import httpx
+
 from .core.config import settings
 
 
@@ -44,8 +45,8 @@ class LLMClient:
         try:
             result = response.json()
             answer = result["choices"][0]["message"]["content"]
-        except Exception as _:
-            raise RuntimeError("Obtained unexpected response format")
+        except (ValueError, KeyError, IndexError, TypeError) as exc:
+            raise RuntimeError("Obtained unexpected response format") from exc
 
         if not answer:
             # reasoning models can spend the whole token budget before writing any content

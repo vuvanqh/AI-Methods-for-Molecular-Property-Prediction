@@ -53,6 +53,24 @@ describe.each([true, false])("useAnalysisMotion (reduced motion: %s)", (reduced)
         rerender({ started: false }); // consumes the recorded Flip state
     });
 
+    it("mounts the analysis loader whether it is already there or appears later, and removes it on unmount", async () => {
+        page({ landing: false });
+        const loader = () => Object.assign(document.createElement("div"), { className: "analysis-loader" });
+        const early = loader();
+        early.dataset.animate = "loader";
+        document.body.append(early);
+        const { unmount } = renderHook(() => useAnalysisMotion({ analysisStarted: true }));
+        expect(early.querySelector(".analysis-loader__stage")).not.toBeNull();
+
+        const late = loader();
+        late.dataset.animate = "loader";
+        document.body.append(late);
+        await waitFor(() => expect(late.querySelector(".analysis-loader__stage")).not.toBeNull());
+
+        unmount();
+        expect(document.querySelector(".analysis-loader__stage")).toBeNull();
+    });
+
     it("exitResults resolves at once when there are no results", async () => {
         page();
         const { result } = renderHook(() => useAnalysisMotion({ analysisStarted: false }));

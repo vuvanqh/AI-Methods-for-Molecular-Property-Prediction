@@ -1,16 +1,18 @@
 import asyncio
 import logging
 
+from sqlalchemy.orm import Session
+
 from .descriptors import describe_molecule
 from .gnn_client import gnn_client
 from .llm_client import llm_client
 from .rag.augmentation import ChemblRetrieval
 from .rag.augmentation.evidence_collection import gather_evidence
 from .rag.augmentation.prompt_builder import build_prompt
+from .rag.config import RAG_TOP_K, SOURCE_URL_TEMPLATES
 from .rag.molecule_retrieval import create_retriever
 from .rag.retrieval_type import RetrievalType
-from .rag.config import RAG_TOP_K, SOURCE_URL_TEMPLATES
-from sqlalchemy.orm import Session
+
 
 logger = logging.getLogger(__name__)
 

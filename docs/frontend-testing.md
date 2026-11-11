@@ -222,8 +222,20 @@ The first three cases run once for each of the eight molecules in `MOLECULES`.
 | removes its svg on dispose | |
 | rotates on each ticker frame while animated and stops after dispose | the GSAP ticker drives rotation; after `dispose()` the ticker callback must be gone |
 
+#### `src/styles/loader.test.ts`: analysis loader
+| case | rationale |
+|------|-----------|
+| draws every heavy atom and leaves hydrogens out | the graph is a heavy-atom sketch; the 4 oxygens of aspirin carry labels |
+| keeps every atom inside the viewBox | layout and scaling for all three sketchable molecules |
+| at each phase's time shows that phase: its bar and caption together, nothing else | runs at a point inside each of the 4 phases; the bar and caption must always agree |
+| keeps bar and caption in step on the second loop too | the timeline repeats; sync must survive the restart |
+| holds the attribution frame without motion | reduced motion: paused timeline, phase 3 caption, halos drawn |
+| shows the SMILES and elapsed time, and flags a slow request | `performance.now` is mocked; after 12 s the host gets `data-slow` |
+| cleans up by itself once its host leaves the page | React removes the host without notice; the next ticker frame removes the generated DOM and the timeline |
+| leaves the host's own content alone | the React-owned status `<p>` stays the only accessible child |
+
 #### `src/styles/motion.test.tsx`: `useAnalysisMotion`
-The hook runs against a DOM built from the selectors it targets (see the selector contract in [frontend-styling.md](./frontend-styling.md#selector-contract)). The first five cases run with reduced motion on and off.
+The hook runs against a DOM built from the selectors it targets (see the selector contract in [frontend-styling.md](./frontend-styling.md#selector-contract)). The first six cases run with reduced motion on and off.
 
 | case | rationale |
 |------|-----------|
@@ -231,6 +243,7 @@ The hook runs against a DOM built from the selectors it targets (see the selecto
 | `exitLanding` resolves once the landing copy has left | navigation waits on this promise |
 | `exitLanding` resolves at once when there is no landing copy | a missing target must not block navigation |
 | `exitResults` resolves once the results have left | |
+| mounts the analysis loader whether it is already there or appears later, and removes it on unmount | both mount paths (initial query and `MutationObserver`) and the dispose on unmount |
 | `exitResults` resolves at once when there are no results | |
 | counts numbers up from zero when a list mounts later | the `MutationObserver` path for lists that appear after data loads |
 | re-staggers a card's list when its family select changes | the delegated `change` listener |
@@ -247,7 +260,7 @@ The hook runs against a DOM built from the selectors it targets (see the selecto
 | case | rationale |
 |------|-----------|
 | starts on the landing page without results | |
-| submits a SMILES, shows the loading state, then every card | URL becomes `/CCO`; exactly one request with the trimmed SMILES; loading placeholder with `aria-busy`; landing hero removed; analyze button disabled |
+| submits a SMILES, shows the loading state, then every card | URL becomes `/CCO`; exactly one request with the trimmed SMILES; analysis loader with `aria-busy` (checked on `.closest(".analysis-loader")`, because the text sits in its status `<p>`); landing hero removed; analyze button disabled |
 | renders the mapped response | API → mapper → card wiring: molar mass, default family, confidence, similar molecules, summary, de-duplicated sources (3 → 2), viewer |
 | decodes a deep link before sending it | `/CC(%3DO)O` sends `CC(=O)O` |
 | toggles a property's atom attribution, and keeps it across families | the selection lives in `AnalysisResults` and is shared by the property card and the viewer |
