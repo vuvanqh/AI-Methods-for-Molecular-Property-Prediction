@@ -1,12 +1,12 @@
-from .morgan_fingerprint_helper import (
-    get_canonical_smiles,
-    generate_morgan_fingerprint,
-    fingerprint_to_bitstring,
-)
-from sqlalchemy.orm import Session
-from ..db.models.molecule import Molecule
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import Session, selectinload
+
+from ..db.models.molecule import Molecule
+from .morgan_fingerprint_helper import (
+    fingerprint_to_bitstring,
+    generate_morgan_fingerprint,
+    get_canonical_smiles,
+)
 
 
 def retrieve_similar_molecules_with_sources(

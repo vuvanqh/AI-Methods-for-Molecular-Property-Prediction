@@ -1,10 +1,13 @@
 import math
+
 from rdkit import Chem
-from .config import TASKS_NUMBER, DEVICE, BINARY_PREDICTION_THRESHOLD, TASKS, IG_STEPS
+
+from .config import BINARY_PREDICTION_THRESHOLD, DEVICE, IG_STEPS, TASKS, TASKS_NUMBER
+from .exceptions import ModelInferenceError, MoleculeValidationError
 from .gnn_models.chemprop import Chemprop
-from .xai.integrated_gradients import IntegratedGradientsExplainer
 from .mol_block_generation import mol_block_generation
-from .exceptions import MoleculeValidationError, ModelInferenceError
+from .xai.integrated_gradients import IntegratedGradientsExplainer
+
 
 class MolecularInferenceService:
     """Orchestrates SMILES validation, Chemprop GNN prediction, Integrated Gradients XAI, and 3D MolBlock generation."""

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from pgvector.sqlalchemy import Vector
-from sqlalchemy import UUID, Text, ForeignKey, UniqueConstraint
-from sqlalchemy.orm import mapped_column, Mapped, relationship
-
-from typing import TYPE_CHECKING
-from .base import Base
 import uuid
+from typing import TYPE_CHECKING
+
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import UUID, ForeignKey, Text, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .base import Base
 
 if TYPE_CHECKING:
     from .molecule import Molecule
