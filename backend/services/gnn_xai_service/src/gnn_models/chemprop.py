@@ -5,15 +5,16 @@ from chemprop.models import MPNN
 from chemprop.nn import BinaryClassificationFFN, BondMessagePassing, NormAggregation
 
 from ..exceptions import ModelInferenceError
+from .gnn_interface import GNNPredictor
 
 
-class Chemprop:
+class Chemprop(GNNPredictor):
     """Wrapper around a Chemprop v2 MPNN exposing intermediate atom embeddings for Integrated Gradients."""
 
-    def __init__(self, n_tasks, device, threshold):
+    def __init__(self, n_tasks, device, thresholds):
         """Initialize the featurizer, BondMessagePassing, NormAggregation, and BinaryClassificationFFN."""
         self.device = device
-        self.threshold = threshold 
+        self.thresholds = torch.tensor(thresholds, dtype=torch.float32, device=self.device)
         self.n_tasks = n_tasks
 
         self.featurizer = SimpleMoleculeMolGraphFeaturizer()
@@ -55,16 +56,7 @@ class Chemprop:
         if torch.isnan(atom_embeddings).any() or torch.isinf(atom_embeddings).any():
             raise ModelInferenceError("NaN or Inf values detected in atom embeddings.")
 
-        mol_graph_index = batch_graph.batch
-        if mol_graph_index.shape[0] != num_atoms:
-            raise ModelInferenceError(
-                f"mol_graph_index size ({mol_graph_index.shape[0]}) does not match number of atoms ({num_atoms})"
-            )
-
-        logits = self.forward_from_embeddings(
-            atom_embeddings,
-            mol_graph_index, 
-        )
+        logits = self.forward_from_embeddings(atom_embeddings)
 
         # Invariant checks on logits
         if logits.ndim != 2 or logits.shape[0] != 1 or logits.shape[1] != self.n_tasks:
@@ -75,7 +67,7 @@ class Chemprop:
             raise ModelInferenceError("NaN or Inf detected in model output logits.")
 
         probabilities = logits.sigmoid().squeeze(0)
-        predictions = (probabilities > self.threshold).int()
+        predictions = (probabilities > self.thresholds).int()
 
         if probabilities.shape[0] != self.n_tasks:
             raise ModelInferenceError(
@@ -86,9 +78,7 @@ class Chemprop:
             "probabilities": probabilities,
             "predictions": predictions,
             "atom_embeddings": atom_embeddings,
-            "mol_graph_index": mol_graph_index
         }
-    
 
     def build_batch_mol_graph(self, mol):
         """
@@ -103,7 +93,6 @@ class Chemprop:
         batch_graph.to(self.device)
 
         return batch_graph
-    
 
     def get_embeddings(self, batch_graph):
         """
@@ -114,13 +103,14 @@ class Chemprop:
             atom_embeddings = self.model.message_passing(batch_graph)
         return atom_embeddings
 
-
-    def forward_from_embeddings(
-        self,
-        atom_embeddings,
-        mol_graph_index,
-    ):
+    def forward_from_embeddings(self, atom_embeddings):
         """Chemprop forward pass from atom embeddings to prediction logits (used in integrated gradients)"""
+        mol_graph_index = torch.zeros(
+            atom_embeddings.shape[0],
+            dtype=torch.long,
+            device=atom_embeddings.device,
+        )
+
         # aggregate from atom embeddings to one molecule embedding
         molecule_embeddings = self.model.agg(
             atom_embeddings,
