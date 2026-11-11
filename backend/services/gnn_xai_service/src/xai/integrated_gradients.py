@@ -2,27 +2,25 @@ import torch
 from captum.attr import IntegratedGradients
 
 from ..exceptions import ModelInferenceError
+from ..gnn_models.gnn_interface import GNNPredictor
+from .xai_interface import XAIExplainer
 
 
-class IntegratedGradientsExplainer:
-    """Computes atom-level Integrated Gradients attributions over Chemprop message-passing embeddings."""
+class IntegratedGradientsExplainer(XAIExplainer):
+    """Computes atom-level Integrated Gradients attributions over GNN message-passing embeddings."""
 
-    def __init__(self, predictor, steps: int = 100):
-        """Store the Chemprop predictor wrapper and number of Riemann interpolation steps."""
+    def __init__(self, predictor: GNNPredictor, steps: int = 100):
+        """Store the GNN predictor wrapper and number of Riemann interpolation steps."""
         self.predictor = predictor
         self.steps = steps
 
-    def explain(
-        self, atom_embeddings, mol_graph_index, num_targets: int
-    ) -> list[list[float]]:
+    def explain(self, atom_embeddings, num_targets: int) -> list[list[float]]:
         """
         Calculate atom-level Integrated Gradients for all model targets.
 
         Input:
             atom_embeddings:
                 [number_of_atoms, hidden_dim]
-            mol_graph_index:
-                [number_of_atoms]
             num_targets:
                 Number of target endpoints to explain.
 
@@ -41,11 +39,6 @@ class IntegratedGradientsExplainer:
         num_atoms = atom_embeddings.shape[0]
         if num_atoms == 0:
             raise ModelInferenceError("Cannot explain molecule with 0 atom embeddings.")
-
-        if mol_graph_index is None or mol_graph_index.shape[0] != num_atoms:
-            raise ModelInferenceError(
-                f"mol_graph_index shape mismatch: expected {num_atoms}, got {None if mol_graph_index is None else mol_graph_index.shape[0]}"
-            )
 
         if num_targets <= 0:
             raise ModelInferenceError(
@@ -67,10 +60,7 @@ class IntegratedGradientsExplainer:
             """
             logits_list = []
             for embeddings in embeddings_batched:
-                logits = self.predictor.forward_from_embeddings(
-                    embeddings,
-                    mol_graph_index,
-                )
+                logits = self.predictor.forward_from_embeddings(embeddings)
                 logits_list.append(logits)
 
             return torch.cat(logits_list, dim=0)

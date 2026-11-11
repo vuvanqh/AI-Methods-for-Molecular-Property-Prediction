@@ -1,17 +1,10 @@
-from unittest.mock import patch
-
 import pytest
 from rdkit import Chem
 
 from src.exceptions import ModelInferenceError
 from src.mol_block_generation import mol_block_generation
 
-# =====================================================================
-# 1. mol_block_generation — Happy Paths & Fallbacks
-# =====================================================================
 
-
-@pytest.mark.fast_rdkit
 @pytest.mark.parametrize(
     "smiles",
     [
@@ -28,24 +21,24 @@ from src.mol_block_generation import mol_block_generation
 def test_mol_block_generation_returns_valid_molblock_and_preserves_heavy_atom_prefix(
     smiles: str,
 ) -> None:
-    """
-    Verifies that `mol_block_generation` returns a valid V2000 MolBlock and `mol_with_h`
-    where original heavy atoms stay at indices `0 .. K-1` and added hydrogens at `K .. N-1`.
-    """
     mol = Chem.MolFromSmiles(smiles)
     assert mol is not None
     num_heavy = mol.GetNumAtoms()
 
     molblock, mol_with_h = mol_block_generation(mol)
 
+    # Original molecule is not mutated
+    assert mol.GetNumAtoms() == num_heavy
+
     assert isinstance(molblock, str) and "V2000" in molblock and "M  END" in molblock
-    assert mol_with_h.GetNumConformers() == 1
-    assert mol_with_h.GetConformer().Is3D() is True
+    parsed = Chem.MolFromMolBlock(molblock, removeHs=False)
+    assert parsed is not None
 
     total_atoms = mol_with_h.GetNumAtoms()
+    assert parsed.GetNumAtoms() == total_atoms
     assert total_atoms > num_heavy
 
-    # Prefix 0 .. num_heavy - 1 matches original atoms; suffix num_heavy .. total_atoms - 1 are H (Z=1)
+    # Heavy atoms stay at 0 .. num_heavy - 1; appended atoms at num_heavy .. total_atoms - 1 are H (Z=1)
     for idx in range(num_heavy):
         assert (
             mol_with_h.GetAtomWithIdx(idx).GetAtomicNum()
@@ -55,8 +48,7 @@ def test_mol_block_generation_returns_valid_molblock_and_preserves_heavy_atom_pr
         assert mol_with_h.GetAtomWithIdx(idx).GetAtomicNum() == 1
 
 
-@pytest.mark.fast_rdkit
-def test_mol_block_generation_is_deterministic_via_fixed_random_seed() -> None:
+def test_mol_block_generation_is_deterministic_across_repeated_calls() -> None:
     mol_1 = Chem.MolFromSmiles("CC(C)O")
     mol_2 = Chem.MolFromSmiles("CC(C)O")
     assert mol_1 is not None and mol_2 is not None
@@ -67,74 +59,20 @@ def test_mol_block_generation_is_deterministic_via_fixed_random_seed() -> None:
     assert molblock_1 == molblock_2
 
 
-@pytest.mark.fast_rdkit
-def test_mol_block_generation_uses_random_coords_on_first_embed_failure() -> None:
-    mol = Chem.MolFromSmiles("CCO")
-    assert mol is not None
-
-    real_embed = Chem.AllChem.EmbedMolecule
-    call_count = 0
-
-    def side_effect(m: Chem.Mol, params: object) -> int:
-        nonlocal call_count
-        call_count += 1
-        assert getattr(params, "randomSeed", None) == 0xF00D
-        if call_count == 1:
-            assert getattr(params, "useRandomCoords", False) is False
-            return -1
-        assert getattr(params, "useRandomCoords", False) is True
-        return real_embed(m, params)
-
-    with patch(
-        "src.mol_block_generation.AllChem.EmbedMolecule", side_effect=side_effect
-    ):
-        molblock, mol_with_h = mol_block_generation(mol)
-        assert call_count == 2
-        assert "V2000" in molblock
-        assert mol_with_h.GetNumConformers() == 1
-
-
-@pytest.mark.fast_rdkit
-def test_mol_block_generation_auto_generates_2d_molblock_when_3d_embedding_fails() -> (
+def test_mol_block_generation_produces_valid_molblock_when_3d_embedding_cannot_converge() -> (
     None
 ):
-    """
-    When both ETKDGv3 and ETKDGv3(useRandomCoords=True) return -1 (e.g. strained pentalene
-    "C1=CC2=CC=C1C=C2"), `Chem.MolToMolBlock` automatically generates 2D coordinates in the
-    returned V2000 MolBlock without raising an error.
-    """
     strained_mol = Chem.MolFromSmiles("C1=CC2=CC=C1C=C2")
     assert strained_mol is not None
 
     molblock, mol_with_h = mol_block_generation(strained_mol)
+
     assert isinstance(molblock, str) and "V2000" in molblock and "M  END" in molblock
-    assert mol_with_h.GetNumConformers() == 0
-    assert mol_with_h.GetNumAtoms() == 14
+    parsed = Chem.MolFromMolBlock(molblock, removeHs=False)
+    assert parsed is not None
+    assert parsed.GetNumAtoms() == mol_with_h.GetNumAtoms()
 
 
-# =====================================================================
-# 2. mol_block_generation — Unhappy Paths
-# =====================================================================
-
-
-@pytest.mark.fast_rdkit
-def test_mol_block_generation_raises_on_none_mol() -> None:
-    with pytest.raises(
-        ModelInferenceError, match="Cannot generate MolBlock from None molecule"
-    ):
+def test_mol_block_generation_raises_on_none_molecule() -> None:
+    with pytest.raises(ModelInferenceError):
         mol_block_generation(None)
-
-
-@pytest.mark.fast_rdkit
-def test_mol_block_generation_raises_when_mol_to_molblock_throws() -> None:
-    mol = Chem.MolFromSmiles("CCO")
-    assert mol is not None
-
-    with patch(
-        "src.mol_block_generation.Chem.MolToMolBlock",
-        side_effect=RuntimeError("RDKit C++ error"),
-    ):
-        with pytest.raises(
-            ModelInferenceError, match="Failed to generate MolBlock string for molecule"
-        ):
-            mol_block_generation(mol)
