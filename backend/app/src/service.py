@@ -2,25 +2,18 @@ import asyncio
 import logging
 
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
+from .clients import GNNClient, LLMClient
 from .descriptors import describe_molecule
-from .gnn_client import gnn_client
-from .llm_client import llm_client
-from .rag.augmentation import ChemblRetrieval
-from .rag.augmentation.evidence_collection import gather_evidence
-from .rag.augmentation.prompt_builder import build_prompt
+from .rag import Retriever
+from .rag.augmentation import ClientStrategyBase, build_prompt, gather_evidence
 from .rag.config import RAG_TOP_K, SOURCE_URL_TEMPLATES
-from .rag.molecule_retrieval import create_retriever
-from .rag.retrieval_type import RetrievalType
-
 
 logger = logging.getLogger(__name__)
 
-# each molecule is looked up only at the sources it was ingested from
-EVIDENCE_SOURCES = [ChemblRetrieval()]
 
-
-async def _summarize(prompt: str) -> str:
+async def _summarize(llm_client: LLMClient, prompt: str) -> str:
     try:
         return await llm_client.get_summary(prompt)
     except (ConnectionError, RuntimeError) as exc:
@@ -29,22 +22,29 @@ async def _summarize(prompt: str) -> str:
         return ""
 
 
-async def predict_properties(smiles: str, db: Session) -> dict:
+async def predict_properties(
+    smiles: str,
+    retriever: Retriever,
+    evidence_sources: list[ClientStrategyBase],
+    llm_client: LLMClient,
+    gnn_client: GNNClient,
+    db: Session,
+) -> dict:
     molecule = describe_molecule(
         smiles
     )  # rejects invalid SMILES before the expensive GNN call
 
-    # TO-DO: CURRENTLY BLOCKING
-    retriever = create_retriever(RetrievalType.FINGERPRINT, db)
-    results = retriever.retrieve(smiles, RAG_TOP_K)
+    ret = retriever.create_retriever(db)
+    results = await run_in_threadpool(ret.retrieve, smiles, RAG_TOP_K)
 
     # the external evidence lookups take as long as the GNN, so they run side by side
     gnn_data, (evidence, unavailable) = await asyncio.gather(
         gnn_client.get_prediction_and_attribution(smiles),
-        gather_evidence(EVIDENCE_SOURCES, molecule["smiles"], results),
+        gather_evidence(evidence_sources, molecule["smiles"], results),
     )
     llm_summary = await _summarize(
-        build_prompt(smiles, molecule, gnn_data, results, evidence, unavailable)
+        llm_client,
+        build_prompt(smiles, molecule, gnn_data, results, evidence, unavailable),
     )
 
     similar_compounds_list = [

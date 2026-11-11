@@ -1,14 +1,32 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from .chembl_client import chembl_client
+
+from .clients import ChEMBLClient, GNNClient, LLMClient
 from .controller import app_router
+from .rag import RetrievalType, Retriever
+from .rag.augmentation import ChemblRetrieval
+from .rag.embeddings.unimol_embeddings import UniMolEmbeddings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    yield
-    await chembl_client.aclose()
+    chembl_client = ChEMBLClient()
+    embedding_model = UniMolEmbeddings()
+    llm_client = LLMClient()
+    gnn_client = GNNClient()
+
+    app.state.evidence_sources = [ChemblRetrieval(chembl_client)]
+    app.state.retriever = Retriever(RetrievalType.FUSION, embedding_model)
+    app.state.llm_client = llm_client
+    app.state.gnn_client = gnn_client
+    try:
+        yield
+    finally:
+        await chembl_client.aclose()
+        await gnn_client.aclose()
+        await llm_client.aclose()
+        embedding_model.unload()
 
 
 app = FastAPI(
