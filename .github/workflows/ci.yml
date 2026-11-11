@@ -16,63 +16,40 @@ permissions:
 
 jobs:
   backend-ci:
-    name: "Backend CI (Python ${{ matrix.python-version }})"
+    name: "Backend CI (${{ matrix.project }})"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        # each backend service is its own uv project: own pyproject.toml, uv.lock and Python pin
+        # (.python-version in the service folder, else the repo root's), so CI runs the versions used locally
+        project: ["app", "services/gnn_xai_service"]
     defaults:
       run:
-        working-directory: backend
+        working-directory: backend/${{ matrix.project }}
 
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v7
 
-      - name: "Check for backend files"
-        id: check-backend
-        run: |
-          if [ -f requirements.txt ] || [ -f pyproject.toml ]; then
-            echo "has_code=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_code=false" >> "$GITHUB_OUTPUT"
-            echo "No requirements.txt or pyproject.toml found in backend/. Skipping backend CI."
-          fi
-
-      - name: "Set up Python ${{ matrix.python-version }}"
-        if: steps.check-backend.outputs.has_code == 'true'
-        uses: actions/setup-python@v7
+      - name: "Set up uv"
+        uses: astral-sh/setup-uv@v10
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: "pip"
-          cache-dependency-path: |
-            backend/requirements*.txt
-            backend/pyproject.toml
+          enable-cache: true
+          cache-dependency-glob: backend/${{ matrix.project }}/uv.lock
 
       - name: "Install dependencies"
-        if: steps.check-backend.outputs.has_code == 'true'
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          elif [ -f pyproject.toml ]; then
-            pip install .
-          fi
-          pip install ruff pytest httpx
+        run: uv sync --locked
 
       - name: "Lint with Ruff"
-        if: steps.check-backend.outputs.has_code == 'true'
-        run: |
-          ruff check .
+        run: uvx ruff check .
 
-      - name: "Run backend tests"
-        if: steps.check-backend.outputs.has_code == 'true'
+      - name: "Run tests"
         run: |
-          if [ -d "tests" ]; then
-            pytest
+          if [ -d tests ]; then
+            uv run pytest
           else
-            echo "No backend/tests directory found yet. Skipping pytest."
+            echo "No tests in backend/${{ matrix.project }} yet. Skipping pytest."
           fi
 
   frontend-ci:
