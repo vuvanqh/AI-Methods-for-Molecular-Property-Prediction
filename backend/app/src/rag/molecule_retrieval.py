@@ -9,25 +9,28 @@ from .retrieval.hybrid_retrieval import HybridRetrieval
 
 # TO-DOOOO!!!!!
 class Retriever:
-    def create_retriever(
+    def __init__(
         self,
         retrieval_type: RetrievalType,
-        db: Session,
         embedding_model: BaseEmbeddings | None = None,
-    ) -> Retrieval:
-        if retrieval_type == RetrievalType.FINGERPRINT:
-            return FingerprintRetrieval(db)
-
-        if embedding_model is None:
+    ):
+        if retrieval_type != RetrievalType.FINGERPRINT and embedding_model is None:
             raise ValueError(
                 "Embedding model must be provided for semantic or fusion retrieval."
             )
 
-        semantic = SemanticRetrieval(db, embedding_model)
-        if retrieval_type == RetrievalType.SEMANTIC:
+        self.retrieval_type = retrieval_type
+        self.embedding_model = embedding_model
+
+    def create_retriever(
+        self,
+        db: Session,
+    ) -> Retrieval:
+        if self.retrieval_type == RetrievalType.FINGERPRINT:
+            return FingerprintRetrieval(db)
+
+        semantic = SemanticRetrieval(db, self.embedding_model)
+        if self.retrieval_type == RetrievalType.SEMANTIC:
             return semantic
 
         return HybridRetrieval(FingerprintRetrieval(db), semantic)
-
-
-retirever = Retriever()

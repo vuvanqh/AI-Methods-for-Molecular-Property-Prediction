@@ -9,8 +9,8 @@ class ClientStrategyBase(ABC):
 
     @abstractmethod
     async def retrieve_molecular_evidence(self, query: str) -> list[MolecularEvidence]:
-        '''
+        """
         Fetch experimental evidence for one molecule from an external source.
         The query is a SMILES or the source's own identifier for the molecule.
-        '''
+        """
         raise NotImplementedError("Subclasses must implement this method.")

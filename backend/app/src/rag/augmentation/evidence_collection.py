@@ -32,10 +32,10 @@ async def _flatten(calls: list[EvidenceCall]) -> list[MolecularEvidence]:
 def _calls_for_stored(
     strategies: list[ClientStrategyBase], molecule: Molecule, unavailable: set[str]
 ) -> list[EvidenceCall]:
-    '''
+    """
     One call per provider the molecule was ingested from, each asked with that
     provider's own identifier. A provider no strategy handles is skipped.
-    '''
+    """
     return [
         _retrieve(strategy, source.source_identifier, unavailable)
         for source in molecule.molecule_sources
@@ -49,14 +49,14 @@ async def gather_evidence(
     smiles: str,
     neighbours: list[RetrievedMolecule],
 ) -> tuple[list[list[MolecularEvidence]], set[str]]:
-    '''
+    """
     Evidence for the queried molecule first, then for each neighbour in retrieval
     order. The queried molecule is not stored, so every source is asked by structure;
     a neighbour is asked only of the providers it was actually ingested from.
 
     Also returns the providers that could not be reached at all, so the prompt can
     distinguish a source being down from a molecule genuinely having no data.
-    '''
+    """
     unavailable: set[str] = set()
     evidence = await asyncio.gather(
         _flatten([_retrieve(strategy, smiles, unavailable) for strategy in strategies]),

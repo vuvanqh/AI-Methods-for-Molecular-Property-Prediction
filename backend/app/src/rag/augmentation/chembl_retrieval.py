@@ -1,6 +1,5 @@
 import re
-
-from ...chembl_client import ChEMBLClient, chembl_client
+from ...clients.chembl_client import ChEMBLClient
 from ..config import CHEMBL_DOCUMENT_URL
 from ..result_types.molecular_evidence import MolecularEvidence
 from .client_retrieval_base import ClientStrategyBase
@@ -22,7 +21,7 @@ class ChemblRetrieval(ClientStrategyBase):
     provider = "ChEMBL"
     CHEMBL_ID = re.compile(r"CHEMBL\d+")
 
-    def __init__(self, client: ChEMBLClient = chembl_client):
+    def __init__(self, client: ChEMBLClient):
         self.client = client
 
     async def retrieve_molecular_evidence(self, query: str) -> list[MolecularEvidence]:

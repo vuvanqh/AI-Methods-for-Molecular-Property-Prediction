@@ -58,7 +58,9 @@ def _format_measurement(e: MolecularEvidence) -> str:
     return f"- {e.target_name} ({e.provider}): {text}; assay: {e.assay_description}{reference}"
 
 
-def _format_evidence(evidence: list[MolecularEvidence], unavailable: set[str]) -> list[str]:
+def _format_evidence(
+    evidence: list[MolecularEvidence], unavailable: set[str]
+) -> list[str]:
     selected = _select(evidence)
     if not selected:
         if unavailable:
