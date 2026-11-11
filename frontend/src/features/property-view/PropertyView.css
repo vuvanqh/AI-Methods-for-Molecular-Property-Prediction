@@ -53,7 +53,9 @@
 .property-container {
   --row-height: 62px; /* .property-button: 2 × 20px padding + one 13.5px line + hairline */
   --visible-rows: 4.5;
-  max-height: calc(var(--row-height) * var(--visible-rows));
+  /* basis 0: the list adds no height of its own, so the card's height comes from the row and the list fills what's left */
+  flex: 1 1 0;
+  min-height: calc(var(--row-height) * var(--visible-rows));
   overflow-y: auto;
   overscroll-behavior: contain;
   border-top: var(--hairline);
