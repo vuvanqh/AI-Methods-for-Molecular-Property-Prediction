@@ -29,5 +29,17 @@ class RetrievalSettings(BaseSettings):
     )
 
 
+class PromptBuilderSettings(BaseSettings):
+    max_evidence_per_molecule: int = 10
+    abstract_max_chars: int = 500
+    top_attributed_atoms: int = 3
+    model_config = SettingsConfigDict(
+        env_file=(REPO_ROOT_ENV, ".env"), env_file_encoding="utf-8", extra="ignore"
+    )
+
+
 unimolSettings = UniMolSettings()
 retrievalSettings = RetrievalSettings()
+promptBuilderSettings = PromptBuilderSettings()
+
+CHEMBL_DOCUMENT_URL = "https://www.ebi.ac.uk/chembl/explore/document/{}"
