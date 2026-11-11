@@ -1,18 +1,9 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from .clients import GNNClient, LLMClient
 from .db.session import get_db
-from .dependencies import (
-    get_evidence_sources,
-    get_gnn_client,
-    get_llm_client,
-    get_retriever,
-)
 from .model import ErrorResponse, InferenceRequest, PredictionResponse
-from .rag import Retriever
-from .rag.augmentation import ClientStrategyBase
 from .service import predict_properties
 
 app_router = APIRouter()
@@ -35,16 +26,19 @@ app_router = APIRouter()
     },
 )
 async def predict_properties_endpoint(
-    request: InferenceRequest,
+    request: Request,
+    payload: InferenceRequest,
     db: Session = Depends(get_db),
-    evidence_sources: list[ClientStrategyBase] = Depends(get_evidence_sources),
-    retriever: Retriever = Depends(get_retriever),
-    llm_client: LLMClient = Depends(get_llm_client),
-    gnn_client: GNNClient = Depends(get_gnn_client),
 ):
+    state = request.app.state
     try:
         result = await predict_properties(
-            request.smiles, retriever, evidence_sources, llm_client, gnn_client, db
+            payload.smiles,
+            state.retriever,
+            state.evidence_sources,
+            state.llm_client,
+            state.gnn_client,
+            db,
         )
         return result
 
