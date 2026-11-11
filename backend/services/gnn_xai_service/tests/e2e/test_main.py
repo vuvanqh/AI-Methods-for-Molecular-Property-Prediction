@@ -60,18 +60,17 @@ def test_e2e_post_valid_smiles_returns_200_and_manages_lifespan(
 
 @pytest.mark.fast_rdkit
 @pytest.mark.parametrize(
-    ("bad_smiles", "expected_msg_substring"),
+    "bad_smiles",
     [
-        ("", "SMILES must not be empty"),
-        ("   ", "SMILES must not be empty"),
-        ("\t\n", "SMILES must not be empty"),
-        ("invalid_smiles_string", "RDKit could not parse the provided SMILES"),
-        ("C(C)(C)(C)(C)C", "RDKit could not parse the provided SMILES"),
+        "",
+        "   ",
+        "\t\n",
+        "invalid_smiles_string",
+        "C(C)(C)(C)(C)C",
     ],
 )
 def test_e2e_post_invalid_or_empty_smiles_returns_422_error_response(
     bad_smiles: str,
-    expected_msg_substring: str,
 ) -> None:
     with TestClient(app) as client:
         response = client.post(
@@ -79,9 +78,7 @@ def test_e2e_post_invalid_or_empty_smiles_returns_422_error_response(
             json={"smiles": bad_smiles},
         )
         assert response.status_code == 422
-        body = response.json()
-        assert "message" in body
-        assert expected_msg_substring in body["message"]
+        assert response.json() == {"message": "Invalid molecular input."}
 
 
 @pytest.mark.fast_rdkit

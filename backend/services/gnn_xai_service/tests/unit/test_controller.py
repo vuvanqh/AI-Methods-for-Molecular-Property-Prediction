@@ -57,7 +57,7 @@ def test_controller_molecule_validation_error_returns_422() -> None:
 
     assert isinstance(response, JSONResponse)
     assert response.status_code == 422
-    assert json.loads(response.body) == {"message": "SMILES must not be empty."}
+    assert json.loads(response.body) == {"message": "Invalid molecular input."}
 
 
 def test_controller_model_inference_error_returns_500() -> None:
@@ -72,7 +72,7 @@ def test_controller_model_inference_error_returns_500() -> None:
     assert isinstance(response, JSONResponse)
     assert response.status_code == 500
     assert json.loads(response.body) == {
-        "message": "Inference engine failure: NaN or Inf detected in model output logits."
+        "message": "Internal inference engine failure."
     }
 
 
@@ -87,7 +87,7 @@ def test_controller_native_runtime_error_returns_500() -> None:
 
     assert isinstance(response, JSONResponse)
     assert response.status_code == 500
-    assert json.loads(response.body) == {"message": "Inference engine failure: CUDA out of memory"}
+    assert json.loads(response.body) == {"message": "Internal inference engine failure."}
 
 
 def test_controller_unexpected_exception_returns_generic_500() -> None:
