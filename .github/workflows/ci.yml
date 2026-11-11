@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: "Set up uv"
-        uses: astral-sh/setup-uv@v10
+        uses: astral-sh/setup-uv@v10.3.3  # no moving major tag (v10) is published; Dependabot bumps this
         with:
           enable-cache: true
           cache-dependency-glob: backend/${{ matrix.project }}/uv.lock
