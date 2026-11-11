@@ -1,6 +1,6 @@
-from .retrieval_base import Retrieval
-from ..result_types.retrieved_molecules import RetrievedMolecule
 from ..config import retrievalSettings
+from ..result_types.retrieved_molecules import RetrievedMolecule
+from .retrieval_base import Retrieval
 
 
 class HybridRetrieval(Retrieval):

@@ -1,10 +1,12 @@
 import gc
+import threading
+
+import numpy as np
 import torch
 from unimol_tools import UniMolRepr
+
 from ..config import unimolSettings
-import numpy as np
 from .base_embeddings import BaseEmbeddings
-import threading
 
 
 class UniMolEmbeddings(BaseEmbeddings):

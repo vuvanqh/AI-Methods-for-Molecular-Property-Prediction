@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
+
 from .embeddings.base_embeddings import BaseEmbeddings
-from .retrieval_type import RetrievalType
 from .retrieval.fingerprint_retrieval import FingerprintRetrieval
-from .retrieval.semantic_retrieval import SemanticRetrieval
-from .retrieval.retrieval_base import Retrieval
 from .retrieval.hybrid_retrieval import HybridRetrieval
+from .retrieval.retrieval_base import Retrieval
+from .retrieval.semantic_retrieval import SemanticRetrieval
+from .retrieval_type import RetrievalType
 
 
 # TO-DOOOO!!!!!
