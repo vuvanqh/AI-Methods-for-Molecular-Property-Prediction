@@ -1,4 +1,5 @@
 import httpx
+
 from .core.config import settings
 
 
@@ -34,14 +35,14 @@ class LLMClient:
         except httpx.RequestError as exc:
             raise ConnectionError("LLM service unavailable") from exc
 
-        except httpx.HTTPStatusError as exc:
+        except httpx.HTTPStatusError:
             raise ConnectionError(f"LLM service returned {response.status_code}")
 
         try: 
             result = response.json()
             answer = result["choices"][0]["message"]["content"]
-        except Exception as exc:
-            raise RuntimeError("Obtained unexpected response format")
+        except (ValueError, KeyError, IndexError, TypeError) as exc:
+            raise RuntimeError("Obtained unexpected response format") from exc
 
         return answer
 

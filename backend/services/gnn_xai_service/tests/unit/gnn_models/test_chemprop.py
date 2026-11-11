@@ -1,4 +1,5 @@
 from unittest.mock import patch
+
 import pytest
 import torch
 from rdkit import Chem
@@ -6,7 +7,6 @@ from rdkit import Chem
 from src.config import BINARY_PREDICTION_THRESHOLD, TASKS_NUMBER
 from src.exceptions import ModelInferenceError
 from src.gnn_models.chemprop import Chemprop
-
 
 # =====================================================================
 # 1. Chemprop.predict — Happy Paths & Invariance

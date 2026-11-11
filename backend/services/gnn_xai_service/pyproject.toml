@@ -12,3 +12,6 @@ dependencies = [
 dev = [
     "pytest>=9.2.0",
 ]
+
+[tool.ruff.lint]
+ignore = ["SIM117"]  # nested `with` blocks in tests read fine

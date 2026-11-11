@@ -1,5 +1,6 @@
 import torch
 from captum.attr import IntegratedGradients
+
 from ..exceptions import ModelInferenceError
 
 
