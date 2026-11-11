@@ -2,24 +2,20 @@ import math
 
 from rdkit import Chem
 
-from .config import BINARY_PREDICTION_THRESHOLD, DEVICE, IG_STEPS, TASKS, TASKS_NUMBER
+from .config import TASKS
 from .exceptions import ModelInferenceError, MoleculeValidationError
-from .gnn_models.chemprop import Chemprop
+from .gnn_models.gnn_interface import GNNPredictor
 from .mol_block_generation import mol_block_generation
-from .xai.integrated_gradients import IntegratedGradientsExplainer
+from .xai.xai_interface import XAIExplainer
 
 
 class MolecularInferenceService:
-    """Orchestrates SMILES validation, Chemprop GNN prediction, Integrated Gradients XAI, and 3D MolBlock generation."""
+    """Orchestrates SMILES validation, GNN prediction, XAI attribution, and 3D MolBlock generation."""
 
-    def __init__(self):
-        """Initialize the Chemprop predictor and Integrated Gradients explainer once at startup."""
-        self.predictor = Chemprop(TASKS_NUMBER, DEVICE, BINARY_PREDICTION_THRESHOLD)
-
-        self.explainer = IntegratedGradientsExplainer(
-            predictor=self.predictor,
-            steps=IG_STEPS,
-        )
+    def __init__(self, predictor: GNNPredictor, explainer: XAIExplainer):
+        """Store the injected GNN predictor and XAI explainer."""
+        self.predictor = predictor
+        self.explainer = explainer
 
     def predict_and_explain(self, smiles: str):
         """
@@ -41,6 +37,11 @@ class MolecularInferenceService:
                 "The molecule must contain at least one atom."
             )
 
+        if mol.GetNumBonds() == 0:
+            raise MoleculeValidationError(
+                "The molecule must contain at least one bond."
+            )
+
         # Normalize to canonical SMILES so chiral tags (@/@@) and atom indices are traversal-independent
         canonical_smiles = Chem.MolToSmiles(mol, canonical=True)
         mol = Chem.MolFromSmiles(canonical_smiles)
@@ -49,6 +50,11 @@ class MolecularInferenceService:
                 "RDKit could not re-parse the canonicalized SMILES."
             )
         num_atoms_without_h = mol.GetNumAtoms()
+
+        if mol.GetNumBonds() == 0:
+            raise MoleculeValidationError(
+                "The molecule must contain at least one bond."
+            )
 
         # 2. Run GNN model prediction
         result = self.predictor.predict(mol)
@@ -91,7 +97,6 @@ class MolecularInferenceService:
         # 3. Calculate atom-level XAI attributions (by target indices)
         raw_attribution_scores = self.explainer.explain(
             atom_embeddings=result["atom_embeddings"],
-            mol_graph_index=result["mol_graph_index"],
             num_targets=len(TASKS),
         )
 
