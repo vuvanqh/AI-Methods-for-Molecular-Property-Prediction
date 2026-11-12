@@ -303,7 +303,7 @@ Some E2E cases repeat unit-level checks on purpose: unit tests run in jsdom with
 - the GNN service,
 - the backend app on port 8001 (`vite preview` proxies `/api` there).
 
-It analyzes aspirin with a 60-second limit and checks only the shape of the result (cards present, at least one property and one similar molecule, a rendered canvas, no alert), not the values, because model outputs change between versions.
+It analyzes aspirin, waits up to 60 seconds for the results (90-second test timeout), and checks only the shape of the result (cards present, at least one property and one similar molecule, a rendered canvas, no alert), not the values, because model outputs change between versions.
 
 ## Continuous integration
 `.github/workflows/ci.yml`:

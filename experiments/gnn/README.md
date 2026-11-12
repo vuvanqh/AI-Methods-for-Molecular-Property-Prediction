@@ -4,6 +4,9 @@ Multi-task GNN training and MLflow setup for the 18 endpoints (`12 Tox21`, `5 CY
 
 ## Usage
 
+From `experiments/gnn`:
+
+```bash
 # Full training run (automatically runs gnn_data/preprocess.py on first run)
 uv run python train.py
 

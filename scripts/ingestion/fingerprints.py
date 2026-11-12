@@ -28,9 +28,10 @@ def morgan_fingerprint(smiles: str) -> str:
 
 
 if __name__ == "__main__":
+    assert standardize_smiles("CN(=O)=O") == "C[N+](=O)[O-]"  # nitro normalized
     assert (
-        standardize_smiles("CC(=O)[O-].[Na+]") == "CC(=O)O"
-    )  # sodium acetate -> acetic acid
+        standardize_smiles("CC(=O)O[Na]") == "CC(=O)[O-].[Na+]"
+    )  # metal disconnected; Cleanup keeps the counter-ion
     assert standardize_smiles("OCC") == standardize_smiles("CCO") == "CCO"
     assert standardize_smiles("not a smiles") is None
     fp = morgan_fingerprint("CCO")

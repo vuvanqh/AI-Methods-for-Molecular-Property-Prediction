@@ -7,20 +7,21 @@ The repository has three GitHub Actions workflows:
 
 | Workflow | Triggers | Current behavior |
 | --- | --- | --- |
-| `CI` | Pushes and pull requests targeting `main` | Runs backend validation on Python 3.11 and 3.12 and frontend validation on Node.js 20. |
-| `CodeQL` | Pushes and pull requests targeting `main`; weekly on Monday| Analyzes Python and TypeScript with the `security-extended` and `security-and-quality` query suites. |
+| `CI` | Pushes and pull requests targeting `main` | Runs Ruff and pytest for each backend project (`app`, `services/gnn_xai_service`) on its pinned Python version, frontend lint, coverage, and build on Node.js 24, and Playwright E2E tests. |
+| `CodeQL` | Pushes and pull requests targeting `main`; weekly on Monday | Analyzes Python and TypeScript with the `security-extended` and `security-and-quality` query suites. |
 | `Dependency Review` | Pull requests targeting `main` | Rejects dependency changes with known vulnerabilities of moderate severity or higher. |
 
-Backend CI executes Ruff and pytest according to the repository's workflow configuration. Frontend CI installs dependencies and executes configured lint, test, and build scripts. Checks that are conditional on the presence of directories or scripts may be skipped. As the application is developed, the relevant validation steps will become mandatory to ensure that missing configurations do not silently bypass CI validation.
+Each backend service is its own uv project with its own `pyproject.toml`, `uv.lock`, and Python pin (`.python-version` in the service folder, otherwise the repository root's), so CI runs the same versions as local development. Backend CI installs with `uv sync --locked` and runs Ruff and pytest. Frontend CI runs lint, tests with coverage thresholds, and the build. The Playwright E2E job runs against a mocked API. Some steps are skipped when a project has no tests or no `package.json` yet.
 
 The active branch ruleset currently requires these check names before a merge:
-- `Backend CI (Python 3.12)`
+- `Backend CI (app)`
+- `Backend CI (services/gnn_xai_service)`
 - `Frontend CI`
 - `Analyze (python)`
 - `Analyze (javascript-typescript)`
 - `Review Dependencies`
 
-Python 3.11 is tested but is not currently a required status check as the exact version is still to be decided.
+`Frontend E2E (Playwright)` runs on every pull request but is not a required check.
 
 ## Dependency and Security
 
