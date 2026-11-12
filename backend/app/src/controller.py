@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -25,9 +25,21 @@ app_router = APIRouter()
         },
     },
 )
-async def predict_properties_endpoint(request: InferenceRequest, db: Session = Depends(get_db)):
+async def predict_properties_endpoint(
+    request: Request,
+    payload: InferenceRequest,
+    db: Session = Depends(get_db),
+):
+    state = request.app.state
     try:
-        result = await predict_properties(request.smiles, db)
+        result = await predict_properties(
+            payload.smiles,
+            state.retriever,
+            state.evidence_sources,
+            state.llm_client,
+            state.gnn_client,
+            db,
+        )
         return result
 
     except ValueError:

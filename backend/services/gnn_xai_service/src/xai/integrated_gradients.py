@@ -2,34 +2,25 @@ import torch
 from captum.attr import IntegratedGradients
 
 from ..exceptions import ModelInferenceError
+from ..gnn_models.gnn_interface import GNNPredictor
+from .xai_interface import XAIExplainer
 
 
-class IntegratedGradientsExplainer:
-    """Computes atom-level Integrated Gradients attributions over Chemprop message-passing embeddings."""
+class IntegratedGradientsExplainer(XAIExplainer):
+    """Computes atom-level Integrated Gradients attributions over GNN message-passing embeddings."""
 
-    def __init__(
-        self,
-        predictor,
-        steps: int = 100
-    ):
-        """Store the Chemprop predictor wrapper and number of Riemann interpolation steps."""
+    def __init__(self, predictor: GNNPredictor, steps: int = 100):
+        """Store the GNN predictor wrapper and number of Riemann interpolation steps."""
         self.predictor = predictor
         self.steps = steps
 
-    def explain(
-        self,
-        atom_embeddings,
-        mol_graph_index,
-        num_targets: int
-    ) -> list[list[float]]:
+    def explain(self, atom_embeddings, num_targets: int) -> list[list[float]]:
         """
         Calculate atom-level Integrated Gradients for all model targets.
 
         Input:
             atom_embeddings:
                 [number_of_atoms, hidden_dim]
-            mol_graph_index:
-                [number_of_atoms]
             num_targets:
                 Number of target endpoints to explain.
 
@@ -41,22 +32,21 @@ class IntegratedGradientsExplainer:
         if atom_embeddings is None or not isinstance(atom_embeddings, torch.Tensor):
             raise ModelInferenceError("atom_embeddings must be a valid torch.Tensor.")
         if atom_embeddings.ndim != 2:
-            raise ModelInferenceError(f"atom_embeddings must be 2D [N, d], got shape {list(atom_embeddings.shape)}")
+            raise ModelInferenceError(
+                f"atom_embeddings must be 2D [N, d], got shape {list(atom_embeddings.shape)}"
+            )
 
         num_atoms = atom_embeddings.shape[0]
         if num_atoms == 0:
             raise ModelInferenceError("Cannot explain molecule with 0 atom embeddings.")
 
-        if mol_graph_index is None or mol_graph_index.shape[0] != num_atoms:
+        if num_targets <= 0:
             raise ModelInferenceError(
-                f"mol_graph_index shape mismatch: expected {num_atoms}, got {None if mol_graph_index is None else mol_graph_index.shape[0]}"
+                f"num_targets must be positive, got {num_targets}"
             )
 
-        if num_targets <= 0:
-            raise ModelInferenceError(f"num_targets must be positive, got {num_targets}")
-
         # IG expects the first dimension to be the number of examples.
-        inputs = atom_embeddings.unsqueeze(0) 
+        inputs = atom_embeddings.unsqueeze(0)
 
         # IG baseline is a zero embedding matrix of the same size as the molecule
         baselines = torch.zeros_like(inputs)
@@ -70,27 +60,22 @@ class IntegratedGradientsExplainer:
             """
             logits_list = []
             for embeddings in embeddings_batched:
-                logits = self.predictor.forward_from_embeddings(
-                    embeddings,
-                    mol_graph_index,
-                )
+                logits = self.predictor.forward_from_embeddings(embeddings)
                 logits_list.append(logits)
 
-            return torch.cat(logits_list, dim=0) 
+            return torch.cat(logits_list, dim=0)
 
         # We attribute to atom embeddings not to input
         ig = IntegratedGradients(forward_func)
 
         # Ensure gradients are enabled for IG method
         with torch.enable_grad():
-
             for target_index in range(num_targets):
-
                 attributions = ig.attribute(
                     inputs=inputs,
                     baselines=baselines,
                     target=target_index,
-                    n_steps=self.steps  
+                    n_steps=self.steps,
                 )
 
                 # Validate attribution shape
@@ -107,10 +92,14 @@ class IntegratedGradientsExplainer:
                     raise ModelInferenceError(
                         f"Expected {num_atoms} attribution scores for target {target_index}, got {scores_per_atom.shape[0]}"
                     )
-                if torch.isnan(scores_per_atom).any() or torch.isinf(scores_per_atom).any():
-                    raise ModelInferenceError(f"NaN or Inf detected in attribution scores for target {target_index}.")
+                if (
+                    torch.isnan(scores_per_atom).any()
+                    or torch.isinf(scores_per_atom).any()
+                ):
+                    raise ModelInferenceError(
+                        f"NaN or Inf detected in attribution scores for target {target_index}."
+                    )
 
                 raw_scores.append(scores_per_atom.detach().cpu().tolist())
-                    
-        return raw_scores
 
+        return raw_scores

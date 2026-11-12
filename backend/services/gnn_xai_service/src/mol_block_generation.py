@@ -20,7 +20,7 @@ def mol_block_generation(mol: Chem.Mol) -> tuple[str, Chem.Mol]:
     mol_with_h = Chem.AddHs(mol)
 
     params = AllChem.ETKDGv3()
-    params.randomSeed = 0xf00d
+    params.randomSeed = 0xF00D
 
     # Try standard ETKDGv3 distance-geometry embedding (returns -1 on failure)
     res = AllChem.EmbedMolecule(mol_with_h, params)
@@ -34,8 +34,8 @@ def mol_block_generation(mol: Chem.Mol) -> tuple[str, Chem.Mol]:
     try:
         mol_block = Chem.MolToMolBlock(mol_with_h)
     except Exception as e:
-        raise ModelInferenceError("Failed to generate MolBlock string for molecule.") from e
+        raise ModelInferenceError(
+            "Failed to generate MolBlock string for molecule."
+        ) from e
 
     return mol_block, mol_with_h
-
-
