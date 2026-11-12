@@ -1,0 +1,18 @@
+# MLflow local tracking database and run artifacts
+mlflow.db
+mlflow.db-journal
+mlflow.db-wal
+mlflow.db-shm
+mlruns/
+mlartifacts/
+
+# Raw & processed datasets
+gnn_data/data/
+
+# Local model checkpoints & temporary outputs
+checkpoints/
+outputs/
+*.pt
+*.ckpt
+*.parquet
+
