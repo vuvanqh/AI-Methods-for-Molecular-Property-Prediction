@@ -7,6 +7,11 @@ class SimilarCompoundModel(BaseModel):  # TODO add more fields?
         description="The similar compound in SMILES format.",
         examples=["O=C(C)Oc1ccccc1C(=O)O"],
     )
+    molecular_formula: str = Field(
+        ...,
+        description="Molecular formula of the similar compound.",
+        examples=["C₆H₁₂O₆"],
+    )
     similarity_score: float = Field(
         ...,
         description="Similarity score between the original and similar compound.",

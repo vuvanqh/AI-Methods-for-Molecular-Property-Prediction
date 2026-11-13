@@ -1,5 +1,5 @@
 from rdkit import Chem, DataStructs
-from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem import rdFingerprintGenerator, rdMolDescriptors
 
 from .config import MORGAN_FINGERPRINT_RADIUS, MORGAN_FINGERPRINT_SIZE
 
@@ -21,6 +21,17 @@ def smiles_to_mol(smiles):
         raise ValueError(f"SMILES has no atoms: {smiles}")
 
     return mol
+
+
+def get_molecular_formula(smiles):
+    """
+    Convert smiles into molecular formula representation.
+    """
+    try:
+        mol = smiles_to_mol(smiles)
+        return rdMolDescriptors.CalcMolFormula(mol)
+    except Exception:
+        return ""
 
 
 def get_canonical_smiles(smiles):
