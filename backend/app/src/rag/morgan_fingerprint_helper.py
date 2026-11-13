@@ -30,7 +30,7 @@ def get_molecular_formula(smiles):
     try:
         mol = smiles_to_mol(smiles)
         return rdMolDescriptors.CalcMolFormula(mol)
-    except Exception:
+    except ValueError:
         return ""
 
 

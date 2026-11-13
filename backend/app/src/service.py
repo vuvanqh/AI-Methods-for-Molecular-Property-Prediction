@@ -11,7 +11,6 @@ from .rag.augmentation import ClientStrategyBase, build_prompt, gather_evidence
 from .rag.config import RAG_TOP_K, SOURCE_URL_TEMPLATES
 from .rag.morgan_fingerprint_helper import get_molecular_formula
 
-
 logger = logging.getLogger(__name__)
 
 
