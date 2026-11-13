@@ -12,7 +12,8 @@ function page({ landing = true, results = false } = {}) {
         <div class="molecule-field__item" data-molecule="unknown"></div>
         ${landing ? '<header class="landing-hero"><h1>Landing</h1></header>' : ""}
         ${results ? '<div class="analysis-results"><header class="analysis-hero"><h2>Results</h2></header><section class="card"></section></div>' : ""}
-        <section class="smiles-input-container"></section>`;
+        <section class="smiles-input-container"></section>
+        ${landing ? '<div class="smiles-examples"><h2 class="smiles-examples__label">Examples</h2><ul><li class="smiles-examples__item"><button><span class="smiles-example__name">Aspirin</span><span class="smiles-example__smiles">CC(=O)Oc1ccccc1C(=O)O</span></button></li></ul></div>' : ""}`;
 }
 
 const molecules = () => [...document.querySelectorAll(".molecule-field__item")].map(el => el.querySelector("svg.molecule3d") !== null);
@@ -37,6 +38,13 @@ describe.each([true, false])("useAnalysisMotion (reduced motion: %s)", (reduced)
         const { result } = renderHook(() => useAnalysisMotion({ analysisStarted: false }));
         await act(() => result.current.exitLanding());
         expect(document.querySelector<HTMLElement>(".landing-hero h1")!.style.opacity).toBe("0");
+    });
+
+    it("exitLanding takes the example tiles out with the landing copy", async () => {
+        page();
+        const { result } = renderHook(() => useAnalysisMotion({ analysisStarted: false }));
+        await act(() => result.current.exitLanding());
+        expect([...document.querySelectorAll<HTMLElement>(".smiles-examples__label, .smiles-examples__item")].map(el => el.style.opacity)).toEqual(["0", "0"]);
     });
 
     it("exitLanding resolves at once when there is no landing copy", async () => {

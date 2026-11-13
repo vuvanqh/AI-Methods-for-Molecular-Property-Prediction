@@ -9,6 +9,7 @@ from .descriptors import describe_molecule
 from .rag import Retriever
 from .rag.augmentation import ClientStrategyBase, build_prompt, gather_evidence
 from .rag.config import RAG_TOP_K, SOURCE_URL_TEMPLATES
+from .rag.morgan_fingerprint_helper import get_molecular_formula
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,9 @@ async def predict_properties(
     similar_compounds_list = [
         {
             "smiles": result.molecule.standardized_smiles,
+            "molecular_formula": get_molecular_formula(
+                result.molecule.standardized_smiles
+            ),
             "similarity_score": result.score,
             "sources": [
                 SOURCE_URL_TEMPLATES[source.provider].format(source.source_identifier)

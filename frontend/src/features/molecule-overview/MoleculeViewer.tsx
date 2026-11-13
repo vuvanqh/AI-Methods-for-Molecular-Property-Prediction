@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createViewer, type GLViewer } from "3dmol";
+import { atomColor } from "../../styles/atomColors";
 
-const THEMED_ELEMENTS = ["C", "O", "N", "H"];
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 type MoleculeViewerProps = {
@@ -23,8 +23,11 @@ export default function MoleculeViewer({ molblock, property, scores }: MoleculeV
         const viewer = createViewer(container, { backgroundColor: "black", backgroundAlpha: 0, antialias: true });
         viewer.addModel(molblock, "sdf");
      
+        // colours for the elements this molecule actually has, so salts and trace elements
+        // never fall through to 3Dmol's deep-pink default
         const css = getComputedStyle(container);
-        const map = Object.fromEntries(THEMED_ELEMENTS.map(el => [el, css.getPropertyValue(`--atom-${el.toLowerCase()}`).trim()]));
+        const elements = new Set(viewer.getModel().selectedAtoms({}).map(atom => atom.elem).filter((el): el is string => !!el));
+        const map = Object.fromEntries([...elements].map(el => [el, atomColor(el, css)]));
         const colorscheme = { prop: "elem", map };
         viewer.setStyle({}, { stick: { radius: 0.14, colorscheme }, sphere: { scale: 0.24, colorscheme } });
         viewer.zoomTo();

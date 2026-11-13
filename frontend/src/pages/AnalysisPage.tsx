@@ -4,6 +4,7 @@ import { SmilesInput } from "../features/smiles-input/SmilesInput"
 import { useState } from "react"
 import { useAnalysisMotion } from "../styles/motion"
 import "./AnalysisPage.css"
+import { ExemplarySmilesCard } from "../features/smiles-input/ExemplarySmilesCard"
 
 export function AnalysisPage() {
     // derived from the URL, so refresh, shared links and back/forward always show the right view
@@ -42,7 +43,9 @@ export function AnalysisPage() {
         {!analysisStarted && <header className="landing-hero">
             <h1>Understand molecules <span className="gradient-text">beyond the structure.</span></h1>
         </header>}
+
         <Outlet/>
+        {!analysisStarted && <ExemplarySmilesCard onSelect={setInputSmiles}/>}
         <SmilesInput inputSmiles={inputSmiles} onChange={setInputSmiles} onAnalyze={analyze} disabled={analysisStarted}/>
     </>
 }

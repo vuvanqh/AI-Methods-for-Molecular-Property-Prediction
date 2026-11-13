@@ -10,15 +10,15 @@ export default defineConfig({
     proxy: { '/api': 'http://localhost:8001' },
   },
   test: {
-    environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
+    environment: 'jsdom', // components need DOM
+    setupFiles: './src/test/setup.ts', // global mocks and cleanup
     include: ['src/**/*.test.{ts,tsx}'], // Playwright specs live in e2e/ and run separately
-    css: false,
+    css: false, // not relevant in jsdom
     coverage: {
       provider: 'v8',
-      include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/main.tsx', 'src/types/**', 'src/test/**', '**/*.test.*'],
-      reporter: ['text'],
+      include: ['src/**/*.{ts,tsx}'], // measure all app code
+      exclude: ['src/main.tsx', 'src/types/**', 'src/test/**', '**/*.test.*'], // entry point, type-only files and test code don't need to be measured
+      reporter: ['text'], 
       thresholds: { lines: 80, statements: 80, functions: 80, branches: 75 },
     },
   },
