@@ -9,7 +9,7 @@ from ..result_types.retrieved_molecules import RetrievedMolecule
 INSTRUCTIONS = """Write a scientific interpretation of the GNN predictions above for a chemist, in at most 250 words of plain text (no markdown, no lists).
 - Explain the positive predictions and which substructures drive them, using the most contributing atoms.
 - Use the measured data to support or question each prediction. You decide which measured targets relate to which property (for example KCNH2 is the hERG channel); ignore unrelated measurements.
-- Data of the queried molecule itself is direct evidence. Data of similar molecules is indirect: weigh it by similarity and cite the molecule as [n].
+- Data of the queried molecule itself is direct evidence. Data of similar molecules is indirect: weigh it by score (higher means a closer match) and cite the molecule as [n].
 - Say clearly when the evidence contradicts the model or when there is no relevant evidence. Never invent measurements or references.
 - A source shown as unknown or unreachable means the data was not retrieved, not that it does not exist. Never conclude a molecule has no measured data in that case; say the check could not be completed."""
 
@@ -129,7 +129,7 @@ def build_prompt(
         zip(neighbours, evidence[1:]), start=1
     ):
         lines.append(
-            f"[{number}] {neighbour.molecule.standardized_smiles} (similarity {neighbour.score:.2f})"
+            f"[{number}] {neighbour.molecule.standardized_smiles} (score {neighbour.score:.2f})"
         )
         lines += _format_evidence(neighbour_evidence, unavailable)
 
