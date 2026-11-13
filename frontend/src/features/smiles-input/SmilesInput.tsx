@@ -21,7 +21,7 @@ export function SmilesInput({inputSmiles, onChange, onAnalyze, disabled}: Smiles
         <label htmlFor="smiles-input" className="smiles-input-label">Enter a molecular structure in SMILES format</label>
 
         <Form onSubmit={handleSubmit} className="smiles-input-form">
-            <input type="text" id="smiles-input" name="smiles-input" placeholder="e.g. C1=CC=CC=C1" onChange={(e)=> onChange(e.target.value)} value={inputSmiles} spellCheck={false} autoComplete="off"/>
+            <input type="text" id="smiles-input" name="smiles-input" placeholder="e.g. C1=CC=CC=C1" onChange={(e)=> onChange(e.target.value)} value={inputSmiles} spellCheck={false} autoComplete="off" disabled={disabled}/>
             <Button className="smiles-input-button btn btn--primary" disabled={disabled} type="submit">
                 Analyze Molecule
             </Button>
