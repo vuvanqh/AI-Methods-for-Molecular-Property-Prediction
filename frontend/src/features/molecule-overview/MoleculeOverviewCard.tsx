@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { MoleculeDescription } from "../../types/molecule";
 import { Section } from "../../components/common/Section";
 import "./MoleculeOverview.css";
+import { Formula } from "../../components/common/MolecularFormula";
 
 const LEGEND = [["C", "Carbon"], ["O", "Oxygen"], ["N", "Nitrogen"], ["H", "Hydrogen"]];
 
@@ -59,9 +60,4 @@ function Stat({ label, value }: { label: string, value: ReactNode }) {
         <dt className="molecule-overview__stat-label">{label}</dt>
         <dd className="molecule-overview__stat-value">{value}</dd>
     </div>
-}
-
-// "C9H8O4" → C₉H₈O₄: split keeps the digit runs at odd indices
-function Formula({ formula }: { formula: string }) {
-    return <>{formula.split(/(\d+)/).map((part, i) => i % 2 ? <sub key={i}>{part}</sub> : part)}</>
 }

@@ -1,18 +1,12 @@
 export type PropertyPrediction = {
-    "property_family": string,
-    "prediciton_results": Array<PredictionResult>
+    property_family: string,
+    prediciton_results: Array<PredictionResult>
 }
 
 export type PredictionResult = {
-    "property_name": string,
-    "property_value": boolean,
-    "confidence": number
-}
-
-export type SimilarMolecule = {
-    "smiles": string,
-    "molecule_name": string,
-    "similarity_score": number
+    property_name: string,
+    property_value: boolean,
+    confidence: number
 }
 
 // Response of POST /api/predict-properties (backend/app/src/model.py)
@@ -40,11 +34,12 @@ export type PropertiesXaiData = {
 
 export type SimilarCompound = {
     smiles: string,
+    molecular_formula: string,
     similarity_score: number,
     sources: string[]
 }
 
 export type ScientificInterpretation = {
-    "interpretation": string,
-    "sources": Array<string>
+    interpretation: string,
+    sources: Array<string>
 }
