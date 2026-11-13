@@ -1,10 +1,12 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { MoleculeDescription } from "../../types/molecule";
 import { Section } from "../../components/common/Section";
 import "./MoleculeOverview.css";
 import { Formula } from "../../components/common/MolecularFormula";
+import { atomColor } from "../../styles/atomColors";
 
-const LEGEND = [["C", "Carbon"], ["O", "Oxygen"], ["N", "Nitrogen"], ["H", "Hydrogen"]];
+// the elements this molecule actually contains, salts included: "C2H3NaO2" -> C, H, Na, O
+const elementsOf = (formula: string) => [...new Set(formula.match(/[A-Z][a-z]?/g) ?? [])];
 
 type MoleculeOverviewCardProps = {
     molecule: MoleculeDescription,
@@ -48,7 +50,9 @@ export function MoleculeOverviewCard({ molecule, children }: MoleculeOverviewCar
                 </dl>
 
                 <ul className="molecule-overview__legend">
-                    {LEGEND.map(([el, name]) => <li key={el} data-atom={el}>{name}</li>)}
+                    {elementsOf(molecule.formula).map(el => (
+                        <li key={el} data-atom={el} style={{ "--atom-dot": atomColor(el) } as CSSProperties}>{el}</li>
+                    ))}
                 </ul>
             </div>
         </div>

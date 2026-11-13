@@ -543,24 +543,13 @@
   gap: 6px;
 }
 
+/* --atom-dot is set per item from atomColors.ts, so the dot matches the 3D viewer for any element */
 .molecule-overview__legend li::before {
   content: '';
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--atom-c);
-}
-
-.molecule-overview__legend li[data-atom='O']::before {
-  background: var(--atom-o);
-}
-
-.molecule-overview__legend li[data-atom='N']::before {
-  background: var(--atom-n);
-}
-
-.molecule-overview__legend li[data-atom='H']::before {
-  background: var(--atom-h);
+  background: var(--atom-dot, var(--atom-c));
 }
 
 @media (max-width: 880px) {
