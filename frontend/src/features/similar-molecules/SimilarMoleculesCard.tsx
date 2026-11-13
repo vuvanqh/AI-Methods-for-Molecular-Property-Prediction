@@ -21,7 +21,7 @@ export function SimilarMoleculesCard({similarMolecules}: SimilarMoleculesCardPro
 
         <div className="table-head">
             <Metadata>Molecule</Metadata>
-            <Metadata>Similarity</Metadata>
+            <Metadata>Score</Metadata>
         </div>
 
         <ul className="similar-molecules-list" data-animate="stagger">
@@ -31,7 +31,7 @@ export function SimilarMoleculesCard({similarMolecules}: SimilarMoleculesCardPro
         </ul>
 
         <Metadata className="similar-molecules-footnote card__footer">
-            Higher scores indicate closer structural relatedness.
+            Higher scores indicate closer matches.
         </Metadata>
     </Section>
 }

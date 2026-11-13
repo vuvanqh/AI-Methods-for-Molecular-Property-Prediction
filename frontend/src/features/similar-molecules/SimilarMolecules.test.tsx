@@ -15,6 +15,6 @@ describe("SimilarMoleculesCard", () => {
         expect(rows.map(r => [r.querySelector(".similar-molecule-name")?.textContent, r.querySelector(".similar-molecule-score")?.textContent]))
             .toEqual([["C7H6O3", "0.88"], ["C8H9NO2", "0.43"]]);
         expect(screen.getByText("0.88")).toHaveAttribute("data-value", "0.88");
-        expect(screen.getByText("Higher scores indicate closer structural relatedness.")).toBeInTheDocument();
+        expect(screen.getByText("Higher scores indicate closer matches.")).toBeInTheDocument();
     });
 });
