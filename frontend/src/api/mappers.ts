@@ -1,6 +1,6 @@
 // Converts the API response (PredictionResponse) into the props each card expects,
 // so components stay independent of the backend's shape.
-import type { PredictionResult, PropertiesXaiData, PropertyPrediction, ScientificInterpretation, SimilarCompound, SimilarMolecule } from "../types/molecule";
+import type { PredictionResult, PropertiesXaiData, PropertyPrediction, ScientificInterpretation, SimilarCompound } from "../types/molecule";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -21,11 +21,6 @@ export function toPropertyPredictions({ predictions, probabilities }: Properties
         families.set(family, results);
     }
     return [...families].map(([property_family, prediciton_results]) => ({ property_family, prediciton_results }));
-}
-
-export function toSimilarMolecules(compounds: SimilarCompound[]): SimilarMolecule[] {
-    // shortcut: the API has no compound names yet, so the SMILES doubles as the name; use the name once retrieval provides it
-    return compounds.map(c => ({ smiles: c.smiles, molecule_name: c.smiles, similarity_score: round2(c.similarity_score) }));
 }
 
 export function toScientificInterpretation(summary: string, compounds: SimilarCompound[]): ScientificInterpretation {

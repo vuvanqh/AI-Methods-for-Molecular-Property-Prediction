@@ -77,8 +77,8 @@ export const aspirinResponse: PredictionResponse = {
         molblock: ASPIRIN_MOLBLOCK,
     },
     similar_compounds: [
-        { smiles: "O=C(O)c1ccccc1O", similarity_score: 0.8765, sources: ["https://www.ebi.ac.uk/chembl/explore/compound/CHEMBL424", "https://www.ebi.ac.uk/chembl/explore/compound/CHEMBL25"] },
-        { smiles: "CC(=O)Nc1ccc(O)cc1", similarity_score: 0.4321, sources: ["https://www.ebi.ac.uk/chembl/explore/compound/CHEMBL25"] },
+        { smiles: "O=C(O)c1ccccc1O", molecular_formula: "C7H6O3", similarity_score: 0.8765, sources: ["https://www.ebi.ac.uk/chembl/explore/compound/CHEMBL424", "https://www.ebi.ac.uk/chembl/explore/compound/CHEMBL25"] },
+        { smiles: "CC(=O)Nc1ccc(O)cc1", molecular_formula: "C8H9NO2", similarity_score: 0.4321, sources: ["https://www.ebi.ac.uk/chembl/explore/compound/CHEMBL25"] },
     ],
     llm_summary: "Aspirin is predicted to inhibit CYP1A2 and to be inactive at hERG.",
 };

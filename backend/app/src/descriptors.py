@@ -1,10 +1,12 @@
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
 
+from .rag.morgan_fingerprint_helper import smiles_to_mol
+
 
 def describe_molecule(smiles: str) -> dict:
     """Structural descriptors shown in the molecule overview card."""
-    mol = Chem.MolFromSmiles(smiles)
+    mol = smiles_to_mol(smiles)
     if mol is None or mol.GetNumAtoms() == 0:
         raise ValueError("RDKit could not parse the provided SMILES.")
 

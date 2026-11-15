@@ -89,7 +89,7 @@ def test_hybrid_sums_scores_for_molecule_found_by_both():
     results = HybridRetrieval(fingerprint, semantic).retrieve("CC", 3)
 
     assert [r.molecule.id for r in results] == ["b", "a", "c"]
-    assert results[0].score == pytest.approx(0.5 / 62 + 0.5 / 61)
+    assert results[0].score == pytest.approx(0.75)
 
 
 @pytest.mark.usefixtures("equal_weights")

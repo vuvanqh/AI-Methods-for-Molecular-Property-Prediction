@@ -21,22 +21,26 @@ class HybridRetrieval(Retrieval):
         fp_results = self.fingerprint.retrieve(smiles, candidate_k)
         sem_results = self.semantic.retrieve(smiles, candidate_k)
 
-        scores = {}
+        rrf = {}
         molecules = {}
+        scores = {}
 
         for results, weight in (
             (fp_results, retrievalSettings.fingerprint_weight),
             (sem_results, retrievalSettings.semantic_weight),
         ):
-            for rank, result in enumerate(results, start=1):
+            for rk, result in enumerate(results, start=1):
                 molecules[result.molecule.id] = result.molecule
-                scores[result.molecule.id] = scores.get(
-                    result.molecule.id, 0.0
-                ) + weight / (self.rrf_k + rank)
+                rrf[result.molecule.id] = rrf.get(result.molecule.id, 0.0) + weight / (
+                    self.rrf_k + rk
+                )
+                scores[result.molecule.id] = (
+                    scores.get(result.molecule.id, 0.0) + weight * result.score
+                )
 
         ranked_ids = sorted(
-            scores,
-            key=lambda mol_id: (-scores[mol_id], str(mol_id)),
+            rrf,
+            key=lambda mol_id: (-rrf[mol_id], str(mol_id)),
         )
 
         return [

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toPropertyPredictions, toScientificInterpretation, toSimilarMolecules } from "./mappers";
+import { toPropertyPredictions, toScientificInterpretation } from "./mappers";
 import { aspirinResponse } from "../test/fixtures/aspirin";
 
 describe("toPropertyPredictions", () => {
@@ -23,15 +23,6 @@ describe("toPropertyPredictions", () => {
 
     it("returns no families for no predictions", () => {
         expect(toPropertyPredictions({ predictions: {}, probabilities: {}, atomscores: {}, molblock: "" })).toEqual([]);
-    });
-});
-
-describe("toSimilarMolecules", () => {
-    it("uses the SMILES as the name and rounds the score", () => {
-        expect(toSimilarMolecules(aspirinResponse.similar_compounds)).toEqual([
-            { smiles: "O=C(O)c1ccccc1O", molecule_name: "O=C(O)c1ccccc1O", similarity_score: 0.88 },
-            { smiles: "CC(=O)Nc1ccc(O)cc1", molecule_name: "CC(=O)Nc1ccc(O)cc1", similarity_score: 0.43 },
-        ]);
     });
 });
 

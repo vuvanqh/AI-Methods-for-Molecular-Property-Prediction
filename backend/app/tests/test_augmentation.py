@@ -165,7 +165,7 @@ def test_prompt_contains_predictions_atoms_and_numbered_evidence():
     )
     assert "- CYP3A4: negative (p=0.12)" in prompt
     assert "Measured data for the queried molecule:\n- no measured data found" in prompt
-    assert "[1] CCCCN (similarity 0.75)" in prompt
+    assert "[1] CCCCN (score 0.75)" in prompt
     assert (
         "- KCNH2 (ChEMBL): IC50 = 14 nM (-log10[M] 7.85); assay: hERG patch clamp; hERG paper (2001)"
         in prompt

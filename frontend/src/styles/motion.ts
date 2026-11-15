@@ -18,6 +18,8 @@
  *   .molecule-field__item           background 3D molecule slot (mounted once, shown on every view),
  *                                   `data-molecule` = a key of MOLECULES in molecule3d.ts
  *   .smiles-input-container         glides between landing and results position (Flip)
+ *   .smiles-examples__label/__item  landing example tiles: rise in after the bar, name first then its
+ *                                   .smiles-example__smiles; leave together with the landing copy
  *   .analysis-hero > *              results heading
  *   .analysis-results .card         result cards, staggered
  *   [data-animate="stagger"]        list whose children stagger in (also when it mounts later, e.g. after loading)
@@ -40,6 +42,7 @@ const SEL = {
     landingText: ".landing-hero > *",
     molecules: ".molecule-field__item",
     smilesBar: ".smiles-input-container",
+    examples: ".smiles-examples__label, .smiles-examples__item",
     resultsText: ".analysis-hero > *",
     cards: ".analysis-results .card",
     lists: '[data-animate="stagger"]',
@@ -78,6 +81,20 @@ function revealList(list: Element, delay = 0) {
         { y: 0, autoAlpha: 1, duration: 0.5, delay, stagger: 0.04, ease: "power2.out", clearProps: "transform" },
     );
     list.querySelectorAll<HTMLElement>(SEL.counts).forEach((el, i) => countUp(el, delay + 0.1 + i * 0.04));
+}
+
+/** Example tiles rise in one after another; inside each, the name lands before its SMILES slides in. */
+function revealExamples(targets: HTMLElement[], delay: number) {
+    if (!targets.length) return;
+    const tl = gsap.timeline({ delay });
+    targets.forEach((el, i) => {
+        const at = i * 0.08;
+        tl.fromTo(el, { y: 14, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.6, ease: "power3.out", clearProps: "transform" }, at);
+        const name = el.querySelector(".smiles-example__name");
+        const smiles = el.querySelector(".smiles-example__smiles");
+        if (name) tl.fromTo(name, { y: 6, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.45, ease: "power2.out", clearProps: "transform" }, at + 0.1);
+        if (smiles) tl.fromTo(smiles, { x: -6, autoAlpha: 0 }, { x: 0, autoAlpha: 1, duration: 0.5, ease: "power2.out", clearProps: "transform" }, at + 0.35);
+    });
 }
 
 type Options = { analysisStarted: boolean; scope?: RefObject<HTMLElement | null> };
@@ -132,13 +149,17 @@ export function useAnalysisMotion({ analysisStarted, scope }: Options) {
             const bar = q(SEL.smilesBar);
             const text = q(analysisStarted ? SEL.resultsText : SEL.landingText);
             const cards = analysisStarted ? q(SEL.cards) : [];
+            const examples = analysisStarted ? [] : q(SEL.examples);
             const glide = flipState.current;
             flipState.current = null;
 
             if (reduced) {
-                if (text.length + cards.length) gsap.fromTo([...text, ...cards], { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2 });
+                const all = [...text, ...cards, ...examples];
+                if (all.length) gsap.fromTo(all, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2 });
                 return;
             }
+            // after the bar: its first-load entrance, or its glide back from the results
+            revealExamples(examples, glide ? 0.45 : 0.95);
             if (glide) Flip.from(glide, { targets: bar, duration: 0.7, ease: "power3.inOut", scale: false });
             else if (!analysisStarted) gsap.fromTo(bar, { y: 16, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.8, delay: 0.6, ease: "power3.out", clearProps: "transform" });
 
@@ -186,19 +207,20 @@ export function useAnalysisMotion({ analysisStarted, scope }: Options) {
         };
     }, []);
 
-    /** Landing copy blurs out and the bar's position is recorded for the glide. Await before navigating. */
+    /** Landing copy and example tiles blur out and the bar's position is recorded for the glide. Await before navigating. */
     const exitLanding = () =>
         contextSafe(() =>
             new Promise<void>((resolve) => {
                 const q = gsap.utils.selector(scopeRoot());
-                const text = q(SEL.landingText);
+                const text = [...q(SEL.landingText), ...q(SEL.examples)];
                 const done = () => {
                     flipState.current = Flip.getState(q(SEL.smilesBar));
                     resolve();
                 };
                 if (!text.length) return done();
-                if (prefersReducedMotion()) return void gsap.to(text, { autoAlpha: 0, duration: 0.2, onComplete: done });
-                gsap.to(text, { y: -12, autoAlpha: 0, filter: "blur(4px)", duration: 0.45, stagger: 0.05, ease: "power2.in", onComplete: done });
+                // overwrite: an Analyze during the entrance must not be undone by the still-running entrance tweens
+                if (prefersReducedMotion()) return void gsap.to(text, { autoAlpha: 0, duration: 0.2, overwrite: true, onComplete: done });
+                gsap.to(text, { y: -12, autoAlpha: 0, filter: "blur(4px)", duration: 0.45, stagger: 0.05, ease: "power2.in", overwrite: true, onComplete: done });
             }),
         )();
 

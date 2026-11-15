@@ -22,6 +22,7 @@ class LLMClient(Client):
                     {"content": user_prompt, "role": "user"},
                 ],
                 "model": settings.llm_model,
+                "reasoning": {"effort": "low"},
                 "temperature": settings.llm_temp,
             }
             headers = {"Authorization": f"Bearer {settings.OPENROUTER_API_KEY}"}
@@ -38,7 +39,8 @@ class LLMClient(Client):
 
         try:
             result = response.json()
-            answer = result["choices"][0]["message"]["content"]
+            choice = result["choices"][0]
+            answer = choice["message"]["content"]
         except (ValueError, KeyError, IndexError, TypeError) as exc:
             raise RuntimeError("Obtained unexpected response format") from exc
 

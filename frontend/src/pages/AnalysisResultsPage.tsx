@@ -8,7 +8,7 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { analysisQuery } from "../api/analysis";
 import type { PredictionResponse } from "../types/molecule";
-import { toPropertyPredictions, toScientificInterpretation, toSimilarMolecules } from "../api/mappers";
+import { toPropertyPredictions, toScientificInterpretation } from "../api/mappers";
 import "../features/molecule-overview/MoleculeOverview.css";
 
 const MoleculeViewer = lazy(() => import("../features/molecule-overview/MoleculeViewer"));
@@ -54,7 +54,7 @@ function AnalysisResults({ data }: { data: PredictionResponse }) {
                     onPropertySelect={toggleProperty}/>
             </div>
             <div>
-                <SimilarMoleculesCard similarMolecules={toSimilarMolecules(data.similar_compounds)}/>
+                <SimilarMoleculesCard similarMolecules={data.similar_compounds}/>
             </div>
         </div>
 
