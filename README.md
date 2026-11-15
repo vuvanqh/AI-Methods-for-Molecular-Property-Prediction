@@ -6,6 +6,20 @@ Every model and method sits behind an interface and can be replaced; the choices
 
 Developed as an undergraduate Bachelor's thesis project.
 
+## Application Preview
+
+The landing page takes a SMILES string, with one-click examples for common compounds:
+
+![Landing page: the heading "Understand molecules beyond the structure", five example compound buttons, and the SMILES input bar, over a field of slowly drifting 3D molecules](docs/images/landing.png)
+
+While the request is pending, a sketch of the GNN pipeline is drawn step by step (see [docs/frontend-styling.md](docs/frontend-styling.md#analysis-loader)):
+
+![Loading state: a molecular graph is drawn on the left, feeding a molecule vector and a list of property heads on the right, with the phase caption "Reading the molecule"](docs/images/loading.png)
+
+The results page combines the 3D structure, the per-task predictions, the retrieved analogues and the evidence-grounded interpretation in one view:
+
+![Results page for aspirin: the structural overview card with an interactive 3D model, the property prediction card, the similar molecules card, and the scientific interpretation card with numbered citations](docs/images/results.png)
+
 
 ## How to Run the Application
 
@@ -263,6 +277,7 @@ Each component can be swapped by adding a new implementation of its interface.
 │           ├── src/           # Model loading, single-flight inference lock, MolBlocks
 │           └── tests/         # Unit, integration, and e2e tests
 ├── docs/                      # Technical documentation
+│   ├── images/                # Screenshots used in the documentation
 │   ├── getting-started.md     # Setup, configuration, and troubleshooting
 │   ├── corpus-ingestion.md    # Corpus ingestion, standardization, fingerprints, embeddings
 │   ├── database-design.md     # PostgreSQL schema, design decisions, ER diagram

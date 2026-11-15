@@ -151,6 +151,9 @@ Breakpoints:
 - `.smiles-input-button` (combined with `.btn .btn--primary`): at least 172px wide. An arrow is added with `::after` and slides 3px on hover.
 
 ### Molecule overview (`MoleculeOverview.css`)
+
+![Molecule overview card: the formula and SMILES in the header, an interactive 3D ball-and-stick model on the left, and the structural descriptors with an element legend on the right](images/overview.png)
+
 Used by `MoleculeOverviewCard` and `MoleculeViewer`. The header comment of the file contains the full markup (the class contract). In summary:
 
 - `__header`: name and subtitle on the left; formula chip, divider and "Browser-rendered 3D" chip on the right.
@@ -170,6 +173,9 @@ Used by `MoleculeOverviewCard` and `MoleculeViewer`. The header comment of the f
 - The 3Dmol viewer reads its atom colours from the `--atom-*` tokens, so the model and the legend always match.
 
 ### Property prediction (`PropertyView.css`)
+
+![Property prediction card: a family selector beneath the title, then one row per endpoint with its boolean verdict and confidence](images/predictions.png)
+
 - `.property-prediction-header`: the title, with the family selector stacked beneath it.
 - `.property-family-select`:
   - The native `<select>` restyled as the reference's inline "Method ⌄" control: blue text, a chevron SVG background, and a faint tint on hover.
@@ -181,6 +187,9 @@ Used by `MoleculeOverviewCard` and `MoleculeViewer`. The header comment of the f
 - `.property-confidence`: 11px monospace, right-aligned, truncated with an ellipsis.
 
 ### Similar molecules (`SimilarMolecules.css`)
+
+![Similar molecules card: a two-column table of retrieved analogues, each showing its molecular formula and its fusion score, with a footnote beneath](images/similar-molecules.png)
+
 - `.similar-molecules-card`: a flex column, so the footnote sits at the bottom when the card is stretched to the height of its neighbour.
 - Table-head labels are in the link colour.
 - `.similar-molecule-item`: a row with hover tint.
@@ -381,6 +390,9 @@ When the OS has "reduce motion" enabled (`prefers-reduced-motion: reduce`):
 - in CSS, `index.css` reduces all transitions and keyframe animations to 0.01 ms.
 
 ## Analysis loader
+
+![The analysis loader mid-run: a molecular graph drawn on the left, a grid of cells labelled "molecule vector" in the middle, and the property heads listed on the right, above a four-step phase bar and the elapsed-time clock](images/loading.png)
+
 `styles/loader.ts` draws the loading state of the results page: a 2D sketch of what the GNN does, played left to right while `POST /api/predict-properties` is pending. A molecular graph draws in, message-passing pulses run along its bonds, Integrated Gradients halos mark the atoms, and the atoms pool into a molecule vector that feeds the property heads. Like the decorative molecules, it has no framework dependency and is hidden from screen readers. The only accessible content is the status line React renders.
 
 ### Markup
