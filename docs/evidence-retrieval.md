@@ -191,7 +191,7 @@ llm_client.get_summary(prompt)         the written interpretation
 
 | file | responsibility |
 |---|---|
-| `src/chembl_client.py` | HTTP only: pagination, batching, filters, error translation |
+| `clients/chembl_client.py` | HTTP only: pagination, batching, filters, error translation |
 | `rag/augmentation/client_retrieval_base.py` | the strategy interface each provider implements |
 | `rag/augmentation/chembl_retrieval.py` | the only module that knows ChEMBL's vocabulary |
 | `rag/augmentation/evidence_collection.py` | routes each molecule to the providers it came from |
@@ -200,7 +200,7 @@ llm_client.get_summary(prompt)         the written interpretation
 
 ### Selecting which rows reach the prompt
 
-A molecule can return thousands of rows; the prompt takes at most `MAX_EVIDENCE_PER_MOLECULE`. The filter in `prompt_builder._select` is:
+A molecule can return thousands of rows; the prompt takes at most `MAX_EVIDENCE_PER_MOLECULE` (default 10). The filter in `prompt_builder._select` is:
 
 1. Discard rows with neither a value nor an outcome.
 2. Rank by potency (`_rank`).
@@ -218,7 +218,7 @@ Each selected row becomes one line:
   Kv11.1; Recent developments in ... potassium channel modulators (2001)
 ```
 
-Neighbours are numbered `[1]…[k]`, matching the numbered source links in the frontend. One abstract is included, truncated to `ABSTRACT_MAX_CHARS`. Predictions are read from the GNN response keys rather than a fixed list, so changing the task set requires no change here.
+Neighbours are numbered `[1]…[k]`, matching the numbered source links in the frontend. Each molecule's section includes at most one abstract (from its highest-ranked row that has one), truncated to `ABSTRACT_MAX_CHARS` (default 500). Predictions are read from the GNN response keys rather than a fixed list, so changing the task set requires no change here.
 
 Atom attributions are rendered as small fragments (`N3 in CN`) from the top-scoring atoms of each positive prediction. These are produced from the **original** SMILES rather than the canonical form, because the GNN indexed atoms in the order it received them; canonicalising first would misalign every attribution.
 

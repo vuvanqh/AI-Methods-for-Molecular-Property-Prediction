@@ -1,7 +1,7 @@
 """Fetch ChEMBL small molecules, compute Morgan fingerprints and Uni-Mol embeddings, load them into Postgres.
 
 Run from the repo root, after creating the tables once with `cd backend && uv run --project .. alembic upgrade head`:
-    uv run python -m scripts.ingest
+    uv run python -m scripts.ingestion.ingest
 Safe to re-run: molecules, sources and embeddings that already exist are skipped.
 """
 

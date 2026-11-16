@@ -119,7 +119,7 @@ The analysis page has two visual states. CSS tells them apart by which elements 
 
 | state | detected by | layout |
 |-------|-------------|--------|
-| Landing | `.landing-hero` exists | copy and SMILES bar centred vertically (760px wide); 3D molecules float in the side gutters |
+| Landing | `.landing-hero` exists | copy (720px) and SMILES bar (760px) centred vertically; 3D molecules float in the side gutters |
 | Results | `.analysis-results` exists | heading, then cards, then the SMILES bar at the bottom (1048px wide) |
 | Neither (no landing copy yet) | `#root:not(:has(.landing-hero))` | the SMILES bar is centred vertically on its own |
 
@@ -151,7 +151,10 @@ Breakpoints:
 - `.smiles-input-button` (combined with `.btn .btn--primary`): at least 172px wide. An arrow is added with `::after` and slides 3px on hover.
 
 ### Molecule overview (`MoleculeOverview.css`)
-This is CSS only; the component has not been built yet. The header comment of the file contains the full intended markup (the class contract). In summary:
+
+![Molecule overview card: the formula and SMILES in the header, an interactive 3D ball-and-stick model on the left, and the structural descriptors with an element legend on the right](images/overview.png)
+
+Used by `MoleculeOverviewCard` and `MoleculeViewer`. The header comment of the file contains the full markup (the class contract). In summary:
 
 - `__header`: name and subtitle on the left; formula chip, divider and "Browser-rendered 3D" chip on the right.
 - `__body`: a 1.45fr / 1fr grid.
@@ -165,12 +168,14 @@ This is CSS only; the component has not been built yet. The header comment of th
     - `__description`;
     - `__stats`, a 2×2 `<dl>` with hairline dividers, styled with `__stat-label` and `__stat-value`;
     - `__legend`, whose `li[data-atom="C|O|N|H"]` items get a coloured dot from the atom tokens.
-- `.molecule-overview--placeholder`: the 340px dot-grid panel shown while the analysis loads (`aria-busy="true"`, the text pulses gently) and when it fails (`role="alert"`, shows the API's message).
 - `.molecule-overview--placeholder`: the 340px dot-grid panel. While the analysis loads it also carries `.analysis-loader` (see [Analysis loader](#analysis-loader)); when the analysis fails it shows the API's message (`role="alert"`).
 - The loaded card fades and rises in (0.6s CSS animation), so it doesn't pop in over the placeholder.
 - The 3Dmol viewer reads its atom colours from the `--atom-*` tokens, so the model and the legend always match.
 
 ### Property prediction (`PropertyView.css`)
+
+![Property prediction card: a family selector beneath the title, then one row per endpoint with its boolean verdict and confidence](images/predictions.png)
+
 - `.property-prediction-header`: the title, with the family selector stacked beneath it.
 - `.property-family-select`:
   - The native `<select>` restyled as the reference's inline "Method ⌄" control: blue text, a chevron SVG background, and a faint tint on hover.
@@ -182,6 +187,9 @@ This is CSS only; the component has not been built yet. The header comment of th
 - `.property-confidence`: 11px monospace, right-aligned, truncated with an ellipsis.
 
 ### Similar molecules (`SimilarMolecules.css`)
+
+![Similar molecules card: a two-column table of retrieved analogues, each showing its molecular formula and its fusion score, with a footnote beneath](images/similar-molecules.png)
+
 - `.similar-molecules-card`: a flex column, so the footnote sits at the bottom when the card is stretched to the height of its neighbour.
 - Table-head labels are in the link colour.
 - `.similar-molecule-item`: a row with hover tint.
@@ -209,8 +217,8 @@ This is CSS only; the component has not been built yet. The header comment of th
 - **Results:**
   - `.analysis-results`: a 1048px column with 20px gaps.
   - `.analysis-hero`: the results heading (eyebrow, h2, `.analysis-hero-subtitle`).
-  - `.analysis-tagline`: muted intro line.
-  - `.analysis-page-tier2`: the two-column card row, with equal-height cards.
+  - `.analysis-page-tier2`: the two-column card row (properties, similar molecules), with equal-height cards.
+  - `.analysis-page-tier3`: the full-width row holding the scientific interpretation card.
 
 ## Motion (GSAP)
 
@@ -319,7 +327,7 @@ These run for as long as the page is open:
 |-------|--------|----|----------|---------|
 | 0 | landing copy lines | y −12, blur 4px, hidden | 0.45 | 0.05 |
 
-The molecules are not touched; they keep turning in the background. When the tween completes, the hook records the SMILES bar position with `Flip.getState` and resolves the promise. Total: 0.45 s.
+The molecules are not touched; they keep turning in the background. When the tween completes, the hook records the SMILES bar position with `Flip.getState` and resolves the promise. Total: 0.45 s plus 0.05 s per additional line.
 
 #### 4. Results entrance
 Runs when `analysisStarted` becomes `true`.
@@ -327,8 +335,7 @@ Runs when `analysisStarted` becomes `true`.
 | start | target | from → to | duration | stagger |
 |-------|--------|-----------|----------|---------|
 | 0 | SMILES bar | Flip glide from the recorded centre position to the bottom (`power3.inOut`) | 0.7 | – |
-| 0.05 | `.analysis-hero` lines | y +18, blur 6px, hidden → in place | 0.8 | 0.08 |
-| 0.15 | `.analysis-results .card` present now (the loading placeholder) | y +24, hidden → in place | 0.8 | 0.08 |
+| 0.05 | `.analysis-hero` lines | y +18, blur 6px, hidden → in place | 0.9 | 0.09 |
 | 0.15 | `.analysis-results .card` present now (the analysis loader) | y +24, hidden → in place | 0.8 | 0.08 |
 
 When the response arrives, the real cards replace the placeholder:
@@ -370,7 +377,6 @@ The number therefore has to be **its own JSX expression**, separate from any sur
 - **Molecules are disposed on unmount only,** by the first context's cleanup. Their ticker callbacks are not part of a GSAP context, so they are removed manually: `dispose()` removes the ticker callback, kills the highlight timelines and removes the `<svg>`.
 - **The exit functions are wrapped in `contextSafe`,** so tweens created on click belong to the context and are cleaned up with it.
 - **React StrictMode:** the double mount in development is safe. The first run is reverted and disposed, then the second run mounts fresh molecules.
-- **Listeners:** a delegated `change` listener on `document` (family selector) and a `MutationObserver` on `document.body` (lists that mount later). Both are removed on unmount. The observer skips non-HTML nodes, so the molecules' constant SVG reordering costs almost nothing.
 - **Listeners:** a delegated `change` listener on `document` (family selector) and a `MutationObserver` on `document.body` (lists and analysis loaders that mount later). Both are removed on unmount, and every loader the hook mounted is disposed with them. The observer skips non-HTML nodes, so the molecules' constant SVG reordering costs almost nothing.
 - **Empty selections are skipped** (for example, no cards on the landing page), so GSAP never warns about missing targets.
 
@@ -384,6 +390,9 @@ When the OS has "reduce motion" enabled (`prefers-reduced-motion: reduce`):
 - in CSS, `index.css` reduces all transitions and keyframe animations to 0.01 ms.
 
 ## Analysis loader
+
+![The analysis loader mid-run: a molecular graph drawn on the left, a grid of cells labelled "molecule vector" in the middle, and the property heads listed on the right, above a four-step phase bar and the elapsed-time clock](images/loading.png)
+
 `styles/loader.ts` draws the loading state of the results page: a 2D sketch of what the GNN does, played left to right while `POST /api/predict-properties` is pending. A molecular graph draws in, message-passing pulses run along its bonds, Integrated Gradients halos mark the atoms, and the atoms pool into a molecule vector that feeds the property heads. Like the decorative molecules, it has no framework dependency and is hidden from screen readers. The only accessible content is the status line React renders.
 
 ### Markup
