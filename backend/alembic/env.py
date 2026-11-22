@@ -15,9 +15,11 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
-config.set_main_option(
-    "sqlalchemy.url", settings.database_url.replace("%", "%%")
-)  # configparser treats % as interpolation
+configured_url = config.get_main_option("sqlalchemy.url")
+if not configured_url or configured_url.startswith("driver://"):
+    config.set_main_option(
+        "sqlalchemy.url", settings.database_url.replace("%", "%%")
+    )  # configparser treats % as interpolation
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

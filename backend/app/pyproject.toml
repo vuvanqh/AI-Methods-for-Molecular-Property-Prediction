@@ -23,10 +23,15 @@ ignore = ["B008"]  # FastAPI's Depends() defaults
 
 [tool.pytest.ini_options]
 pythonpath = ["."]  # tests import the app as `src.*`
+markers = [
+    "integration: tests requiring a real PostgreSQL + pgvector database",
+]
 
 [dependency-groups]
 dev = [
+    "alembic>=1.20.1",
     "pytest>=9.2.0",
+    "testcontainers>=4.15.0",
 ]
 
 [tool.uv]
