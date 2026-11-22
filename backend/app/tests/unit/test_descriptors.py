@@ -1,7 +1,7 @@
 import pytest
 from rdkit import DataStructs
 
-from src.descriptors import describe_molecule
+from src.descriptors import describe_molecule, standardize_smiles
 from src.model import MoleculeModel
 from src.rag.config import MORGAN_FINGERPRINT_SIZE
 from src.rag.morgan_fingerprint_helper import (
@@ -56,9 +56,26 @@ def test_fingerprints_preserve_chirality_radius_and_round_trip_bitstrings() -> N
     assert DataStructs.TanimotoSimilarity(fp_r, bitstring_to_fingerprint(bits_r)) == 1.0
 
 
+@pytest.mark.parametrize(
+    ("raw_smiles", "expected"),
+    [
+        ("OCC", "CCO"),
+        ("CN(=O)=O", "C[N+](=O)[O-]"),  # nitro group normalized
+        ("CC(=O)O[Na]", "CC(=O)[O-].[Na+]"),  # metal disconnected, counter-ion kept
+        ("C[C@H](O)Cl", "C[C@H](O)Cl"),
+    ],
+)
+def test_standardize_smiles_applies_rdkit_cleanup_and_canonicalizes(
+    raw_smiles: str, expected: str
+) -> None:
+    assert standardize_smiles(raw_smiles) == expected
+
+
 @pytest.mark.parametrize("bad_smiles", ["", "   ", "not_a_smiles", "C(C)(C)(C)(C)C"])
 def test_invalid_smiles_raises_value_error(bad_smiles: str) -> None:
     with pytest.raises(ValueError):
         describe_molecule(bad_smiles)
+    with pytest.raises(ValueError):
+        standardize_smiles(bad_smiles)
     with pytest.raises(ValueError):
         generate_morgan_fingerprint(bad_smiles)

@@ -1,7 +1,18 @@
-from rdkit import Chem
+from rdkit import Chem, rdBase
 from rdkit.Chem import Descriptors, rdMolDescriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
 
 from .rag.morgan_fingerprint_helper import smiles_to_mol
+
+# rdMolStandardize.Cleanup logs normalizer initialization banners at info level on every call
+rdBase.DisableLog("rdApp.info")
+
+
+def standardize_smiles(smiles: str) -> str:
+    """Clean up and return canonical isomeric SMILES, matching corpus ingestion."""
+    mol = smiles_to_mol(smiles)
+    cleaned = rdMolStandardize.Cleanup(mol)
+    return Chem.MolToSmiles(cleaned, canonical=True, isomericSmiles=True)
 
 
 def describe_molecule(smiles: str) -> dict:
