@@ -42,11 +42,11 @@ class Analysis(Base):
     )
 
     config: Mapped[dict] = mapped_column(
-        JSONB,
+        JSONB(none_as_null=True),
         nullable=False,
     )
 
     results: Mapped[dict | None] = mapped_column(
-        JSONB,
+        JSONB(none_as_null=True),
         nullable=True,
     )
