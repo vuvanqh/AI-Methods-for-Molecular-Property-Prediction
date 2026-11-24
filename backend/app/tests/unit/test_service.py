@@ -3,11 +3,15 @@ from dataclasses import dataclass
 from unittest.mock import AsyncMock, create_autospec
 
 import pytest
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from src.clients import GNNClient, LLMClient
+from src.db.analysis_status import AnalysisStatus
+from src.db.models import Analysis
 from src.model import PredictionResponse
-from src.rag import Retriever
+from src.rag import RetrievalType, Retriever
 from src.rag.augmentation import ClientStrategyBase
 from src.rag.config import RAG_TOP_K
 from src.rag.result_types.retrieved_molecules import RetrievedMolecule
@@ -48,6 +52,7 @@ def _make_deps(
     retrieval.retrieve.side_effect = lambda _smiles, k: stored[:k]
 
     retriever = create_autospec(Retriever, instance=True)
+    retriever.retrieval_type = RetrievalType.FUSION
     retriever.create_retriever.return_value = retrieval
 
     source = create_autospec(ClientStrategyBase, instance=True)
@@ -129,6 +134,8 @@ def test_predict_properties_rejects_invalid_smiles_before_calling_collaborators(
     deps.retriever.create_retriever.assert_not_called()
     deps.gnn.get_prediction_and_attribution.assert_not_awaited()
     deps.llm.get_summary.assert_not_awaited()
+    deps.db.add.assert_not_called()
+    deps.db.commit.assert_not_called()
 
 
 @pytest.mark.parametrize("llm_err_cls", [ConnectionError, RuntimeError])
@@ -168,3 +175,104 @@ def test_predict_properties_propagates_gnn_errors_without_calling_llm(
             )
         )
     deps.llm.get_summary.assert_not_awaited()
+
+
+def test_predict_properties_logs_completed_analysis_with_config_and_results() -> None:
+    deps = _make_deps()
+    asyncio.run(
+        predict_properties(
+            "CN(=O)=O", deps.retriever, [deps.source], deps.llm, deps.gnn, deps.db
+        )
+    )
+
+    deps.db.add.assert_called_once()
+    deps.db.commit.assert_called_once()
+    logged = deps.db.add.call_args.args[0]
+    assert isinstance(logged, Analysis)
+    assert logged.id is not None
+    assert logged.standardized_input_smiles == "C[N+](=O)[O-]"
+    assert logged.status == AnalysisStatus.COMPLETED
+
+    assert logged.config == {
+        "input_smiles": "CN(=O)=O",
+        "retrieval_type": "fusion",
+        "top_k": RAG_TOP_K,
+    }
+
+    assert logged.results is not None
+    results = PredictionResponse(**logged.results)
+    assert results.properties_xai_data.predictions == {
+        "CYP3A4": False,
+        "hERG_Karim": True,
+    }
+    assert results.properties_xai_data.probabilities == {
+        "CYP3A4": 0.2,
+        "hERG_Karim": 0.85,
+    }
+    assert set(results.properties_xai_data.atomscores) == {"CYP3A4", "hERG_Karim"}
+    assert "V2000" in results.properties_xai_data.molblock
+    assert results.similar_compounds[0].sources == [
+        "https://www.ebi.ac.uk/chembl/explore/compound/CHEMBL424"
+    ]
+    assert results.llm_summary == LLM_SUMMARY
+
+    compiled = (
+        postgresql.insert(Analysis)
+        .values(
+            id=logged.id,
+            standardized_input_smiles=logged.standardized_input_smiles,
+            status=logged.status,
+            config=logged.config,
+            results=logged.results,
+        )
+        .compile(dialect=postgresql.dialect())
+    )
+    assert "INSERT INTO analyses" in str(compiled)
+
+
+def test_predict_properties_logs_failed_analysis_when_gnn_unavailable() -> None:
+    deps = _make_deps(gnn_exc=ConnectionError("GNN down"))
+    with pytest.raises(ConnectionError):
+        asyncio.run(
+            predict_properties(
+                "OCC", deps.retriever, [deps.source], deps.llm, deps.gnn, deps.db
+            )
+        )
+
+    deps.db.add.assert_called_once()
+    deps.db.commit.assert_called_once()
+    logged = deps.db.add.call_args.args[0]
+    assert isinstance(logged, Analysis)
+    assert logged.standardized_input_smiles == "CCO"
+    assert logged.status == AnalysisStatus.FAILED
+    assert logged.results is None
+    assert logged.config["input_smiles"] == "OCC"
+
+
+def test_predict_properties_does_not_log_analysis_when_gnn_rejects_smiles() -> None:
+    deps = _make_deps(gnn_exc=ValueError("Unbonded SMILES"))
+    with pytest.raises(ValueError):
+        asyncio.run(
+            predict_properties(
+                "[Na+]", deps.retriever, [deps.source], deps.llm, deps.gnn, deps.db
+            )
+        )
+
+    deps.db.add.assert_not_called()
+    deps.db.commit.assert_not_called()
+
+
+def test_predict_properties_rolls_back_and_returns_response_when_db_commit_fails() -> (
+    None
+):
+    deps = _make_deps()
+    deps.db.commit.side_effect = SQLAlchemyError("db write failed")
+
+    raw = asyncio.run(
+        predict_properties(
+            "CCO", deps.retriever, [deps.source], deps.llm, deps.gnn, deps.db
+        )
+    )
+
+    assert PredictionResponse(**raw).molecule.smiles == "CCO"
+    deps.db.rollback.assert_called_once()

@@ -10,6 +10,9 @@ from .retrieval_type import RetrievalType
 
 # TO-DOOOO!!!!!
 class Retriever:
+    retrieval_type: RetrievalType
+    embedding_model: BaseEmbeddings | None
+
     def __init__(
         self,
         retrieval_type: RetrievalType,

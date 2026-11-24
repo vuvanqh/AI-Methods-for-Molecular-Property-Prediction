@@ -4,8 +4,10 @@ import logging
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
+from .analysis_logging import log_analysis
 from .clients import GNNClient, LLMClient
-from .descriptors import describe_molecule
+from .db.analysis_status import AnalysisStatus
+from .descriptors import describe_molecule, standardize_smiles
 from .rag import Retriever
 from .rag.augmentation import ClientStrategyBase, build_prompt, gather_evidence
 from .rag.config import RAG_TOP_K, SOURCE_URL_TEMPLATES
@@ -34,40 +36,72 @@ async def predict_properties(
     molecule = describe_molecule(
         smiles
     )  # rejects invalid SMILES before the expensive GNN call
-
-    ret = retriever.create_retriever(db)
-    results = await run_in_threadpool(ret.retrieve, smiles, RAG_TOP_K)
-
-    # the external evidence lookups take as long as the GNN, so they run side by side
-    gnn_data, (evidence, unavailable) = await asyncio.gather(
-        gnn_client.get_prediction_and_attribution(smiles),
-        gather_evidence(evidence_sources, molecule["smiles"], results),
-    )
-    llm_summary = await _summarize(
-        llm_client,
-        build_prompt(smiles, molecule, gnn_data, results, evidence, unavailable),
-    )
-
-    similar_compounds_list = [
-        {
-            "smiles": result.molecule.standardized_smiles,
-            "molecular_formula": get_molecular_formula(
-                result.molecule.standardized_smiles
-            ),
-            "similarity_score": result.score,
-            "sources": [
-                SOURCE_URL_TEMPLATES[source.provider].format(source.source_identifier)
-                for source in result.molecule.molecule_sources
-                # a provider ingestion added but that has no link template yet
-                if source.provider in SOURCE_URL_TEMPLATES
-            ],
-        }
-        for result in results
-    ]
-
-    return {
-        "molecule": molecule,
-        "properties_xai_data": gnn_data,
-        "similar_compounds": similar_compounds_list,
-        "llm_summary": llm_summary,
+    standardized_smiles = standardize_smiles(smiles)
+    analysis_config = {
+        "input_smiles": smiles,
+        "retrieval_type": retriever.retrieval_type.value,
+        "top_k": RAG_TOP_K,
     }
+
+    try:
+        ret = retriever.create_retriever(db)
+        results = await run_in_threadpool(ret.retrieve, smiles, RAG_TOP_K)
+
+        # the external evidence lookups take as long as the GNN, so they run side by side
+        gnn_data, (evidence, unavailable) = await asyncio.gather(
+            gnn_client.get_prediction_and_attribution(smiles),
+            gather_evidence(evidence_sources, molecule["smiles"], results),
+        )
+        llm_summary = await _summarize(
+            llm_client,
+            build_prompt(smiles, molecule, gnn_data, results, evidence, unavailable),
+        )
+
+        similar_compounds_list = [
+            {
+                "smiles": result.molecule.standardized_smiles,
+                "molecular_formula": get_molecular_formula(
+                    result.molecule.standardized_smiles
+                ),
+                "similarity_score": result.score,
+                "sources": [
+                    SOURCE_URL_TEMPLATES[source.provider].format(
+                        source.source_identifier
+                    )
+                    for source in result.molecule.molecule_sources
+                    # a provider ingestion added but that has no link template yet
+                    if source.provider in SOURCE_URL_TEMPLATES
+                ],
+            }
+            for result in results
+        ]
+
+        response = {
+            "molecule": molecule,
+            "properties_xai_data": gnn_data,
+            "similar_compounds": similar_compounds_list,
+            "llm_summary": llm_summary,
+        }
+    except ValueError:
+        raise
+    except Exception:
+        await run_in_threadpool(
+            log_analysis,
+            db,
+            standardized_smiles,
+            AnalysisStatus.FAILED,
+            analysis_config,
+            None,
+        )
+        raise
+
+    await run_in_threadpool(
+        log_analysis,
+        db,
+        standardized_smiles,
+        AnalysisStatus.COMPLETED,
+        analysis_config,
+        response,
+    )
+
+    return response
