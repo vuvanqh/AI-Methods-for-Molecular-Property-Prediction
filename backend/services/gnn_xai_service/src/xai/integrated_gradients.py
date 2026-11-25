@@ -11,6 +11,8 @@ class IntegratedGradientsExplainer(XAIExplainer):
 
     def __init__(self, predictor: GNNPredictor, steps: int = 100):
         """Store the GNN predictor wrapper and number of Riemann interpolation steps."""
+        if steps <= 0:
+            raise ValueError(f"steps must be positive, got {steps}")
         self.predictor = predictor
         self.steps = steps
 

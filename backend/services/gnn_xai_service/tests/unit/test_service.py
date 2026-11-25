@@ -272,6 +272,23 @@ def test_predict_and_explain_rejects_zero_bond_molecules_before_entering_model(
             "predictions": torch.zeros((2,), dtype=torch.int32),
             "atom_embeddings": torch.ones((3, 2)),
         },
+        # Non-1D probabilities tensor (2D [TASKS_NUMBER, 1])
+        {
+            "probabilities": torch.full((TASKS_NUMBER, 1), 0.5),
+            "predictions": torch.zeros((TASKS_NUMBER,), dtype=torch.int32),
+            "atom_embeddings": torch.ones((3, 2)),
+        },
+        # Non-1D predictions tensor (2D [TASKS_NUMBER, 1] of zeros)
+        {
+            "probabilities": torch.full((TASKS_NUMBER,), 0.5),
+            "predictions": torch.zeros((TASKS_NUMBER, 1), dtype=torch.int32),
+            "atom_embeddings": torch.ones((3, 2)),
+        },
+        # Missing 'atom_embeddings'
+        {
+            "probabilities": torch.full((TASKS_NUMBER,), 0.5),
+            "predictions": torch.zeros((TASKS_NUMBER,), dtype=torch.int32),
+        },
     ],
 )
 def test_service_raises_model_inference_error_on_malformed_predictor_outputs(
@@ -292,6 +309,21 @@ def test_service_raises_model_inference_error_on_malformed_predictor_outputs(
         [[0.1, 0.2, 0.3]],
         # Wrong number of atoms for 3-atom CCO
         [[0.1, 0.2] for _ in range(TASKS_NUMBER)],
+        # NaN attribution score
+        [
+            [float("nan"), 0.1, 0.2],
+            *[[0.1, 0.2, 0.3] for _ in range(TASKS_NUMBER - 1)],
+        ],
+        # Positive infinity attribution score
+        [
+            [float("inf"), 0.1, 0.2],
+            *[[0.1, 0.2, 0.3] for _ in range(TASKS_NUMBER - 1)],
+        ],
+        # Negative infinity attribution score
+        [
+            [float("-inf"), 0.1, 0.2],
+            *[[0.1, 0.2, 0.3] for _ in range(TASKS_NUMBER - 1)],
+        ],
     ],
 )
 def test_service_raises_model_inference_error_on_malformed_explainer_outputs(
