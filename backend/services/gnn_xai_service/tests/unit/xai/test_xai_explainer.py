@@ -122,3 +122,9 @@ def test_ig_explainer_raises_model_inference_error_on_nan_attributions() -> None
     )
     with pytest.raises(ModelInferenceError):
         explainer.explain(torch.ones((3, 2), dtype=torch.float32), num_targets=1)
+
+
+@pytest.mark.parametrize("invalid_steps", [0, -5])
+def test_ig_explainer_rejects_non_positive_steps(invalid_steps: int) -> None:
+    with pytest.raises(ValueError):
+        IntegratedGradientsExplainer(predictor=_StubPredictor(), steps=invalid_steps)

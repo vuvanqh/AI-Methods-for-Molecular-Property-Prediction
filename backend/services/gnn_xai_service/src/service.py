@@ -63,6 +63,10 @@ class MolecularInferenceService:
         probabilities_tensor = result.get("probabilities")
         if probabilities_tensor is None:
             raise ModelInferenceError("Missing 'probabilities' in predictor output.")
+        if probabilities_tensor.ndim != 1:
+            raise ModelInferenceError(
+                f"Expected 1D probabilities tensor, got shape {list(probabilities_tensor.shape)}"
+            )
 
         probabilities_list = probabilities_tensor.detach().cpu().tolist()
         if len(probabilities_list) != len(TASKS):
@@ -73,7 +77,7 @@ class MolecularInferenceService:
         probabilities = {}
         for task_name, prob in zip(TASKS, probabilities_list):
             prob_float = float(prob)
-            if math.isnan(prob_float) or prob_float < 0.0 or prob_float > 1.0:
+            if not math.isfinite(prob_float) or prob_float < 0.0 or prob_float > 1.0:
                 raise ModelInferenceError(
                     f"Invalid probability value {prob_float} for task {task_name}."
                 )
@@ -83,6 +87,10 @@ class MolecularInferenceService:
         predictions_tensor = result.get("predictions")
         if predictions_tensor is None:
             raise ModelInferenceError("Missing 'predictions' in predictor output.")
+        if predictions_tensor.ndim != 1:
+            raise ModelInferenceError(
+                f"Expected 1D predictions tensor, got shape {list(predictions_tensor.shape)}"
+            )
 
         predictions_list = predictions_tensor.detach().cpu().tolist()
         if len(predictions_list) != len(TASKS):
@@ -95,8 +103,12 @@ class MolecularInferenceService:
         }
 
         # 3. Calculate atom-level XAI attributions (by target indices)
+        atom_embeddings = result.get("atom_embeddings")
+        if atom_embeddings is None:
+            raise ModelInferenceError("Missing 'atom_embeddings' in predictor output.")
+
         raw_attribution_scores = self.explainer.explain(
-            atom_embeddings=result["atom_embeddings"],
+            atom_embeddings=atom_embeddings,
             num_targets=len(TASKS),
         )
 
@@ -129,14 +141,19 @@ class MolecularInferenceService:
                     f"Task {task_name} attribution score count ({len(scores)}) != num_atoms_without_h ({num_atoms_without_h})."
                 )
 
-            atom_scores[task_name] = {
-                atom.GetIdx(): (
-                    float(scores[atom.GetIdx()])
-                    if atom.GetIdx() < num_atoms_without_h
-                    else None
-                )
-                for atom in mol_with_h.GetAtoms()
-            }
+            task_atom_scores: dict[int, float | None] = {}
+            for atom in mol_with_h.GetAtoms():
+                atom_idx = atom.GetIdx()
+                if atom_idx < num_atoms_without_h:
+                    score_float = float(scores[atom_idx])
+                    if not math.isfinite(score_float):
+                        raise ModelInferenceError(
+                            f"Non-finite attribution score {score_float} for task {task_name} at atom {atom_idx}."
+                        )
+                    task_atom_scores[atom_idx] = score_float
+                else:
+                    task_atom_scores[atom_idx] = None
+            atom_scores[task_name] = task_atom_scores
 
         return {
             "predictions": predictions,

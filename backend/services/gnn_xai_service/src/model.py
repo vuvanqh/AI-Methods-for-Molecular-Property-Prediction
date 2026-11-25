@@ -14,7 +14,11 @@ class GNNXAIInferenceResponse(BaseModel):
     probabilities: dict[str, float]
     atomscores: dict[str, dict[int, float | None]] = Field(
         ...,
-        description="Atom-level scores for each atom in the molecule, where the key of the outer dict is the property, key of the inne dict is the atom index and the value is a dictionary of scores for each property.",
+        description=(
+            "Atom-level attribution scores per predicted property: the outer key is the "
+            "task/property name, the inner key is the atom index, and the inner value is "
+            "the attribution score (float) for heavy atoms or None for explicit hydrogens."
+        ),
     )
     molblock: str = Field(
         description="MolBlock representation of the molecule for visualization purposes."
