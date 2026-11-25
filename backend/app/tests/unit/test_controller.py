@@ -35,7 +35,7 @@ def _setup_controller(
     app = FastAPI()
     app.state.retriever = app.state.llm_client = app.state.gnn_client = object()
     app.state.evidence_sources = []
-    app.dependency_overrides[get_db] = lambda: object()
+    app.dependency_overrides[get_db] = object
     app.include_router(controller_module.app_router, prefix="/api")
     return TestClient(app), called_smiles
 
