@@ -53,7 +53,7 @@ async def prediction_and_attribution_endpoint(
         except MoleculeValidationError as exc:
             logger.info("Molecule validation error: %s", exc)
             return JSONResponse(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 content={"message": "Invalid molecular input."},
             )
 

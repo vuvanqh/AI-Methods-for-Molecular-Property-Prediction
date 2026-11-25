@@ -222,3 +222,33 @@ def test_gnn_predictor_rejects_none_and_empty_molecules(
 
     with pytest.raises(ModelInferenceError):
         gnn_predictor.predict(Chem.Mol())
+
+
+@pytest.mark.parametrize(
+    ("n_tasks", "thresholds"),
+    [
+        (0, []),
+        (-1, [0.5]),
+        (TASKS_NUMBER, [0.5]),
+        (TASKS_NUMBER, [0.5] * (TASKS_NUMBER + 1)),
+    ],
+)
+def test_chemprop_rejects_invalid_n_tasks_or_mismatched_thresholds(
+    n_tasks: int,
+    thresholds: list[float],
+) -> None:
+    with pytest.raises(ValueError):
+        Chemprop(n_tasks=n_tasks, device=torch.device("cpu"), thresholds=thresholds)
+
+
+def test_chemprop_predict_returns_probabilities_without_autograd_graph(
+    gnn_predictor: GNNPredictor,
+) -> None:
+    mol = Chem.MolFromSmiles("CCO")
+    assert mol is not None
+
+    result = gnn_predictor.predict(mol)
+
+    assert result["probabilities"].requires_grad is False
+    assert result["predictions"].requires_grad is False
+    assert result["atom_embeddings"].requires_grad is False
