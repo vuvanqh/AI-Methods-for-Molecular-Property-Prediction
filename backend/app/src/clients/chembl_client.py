@@ -16,7 +16,8 @@ DOCUMENT_BATCH_SIZE = 50
 
 
 class ChEMBLClient(Client):
-    def __init__(self, base_url: str = settings.chembl_api_url):
+    def __init__(self, base_url: str | None = None):
+        base_url = settings.chembl_api_url if base_url is None else base_url
         # trailing slash so url.join("molecule.json") appends instead of replacing the last path segment
         super().__init__(base_url.rstrip("/") + "/", settings.chembl_timeout_seconds)
 

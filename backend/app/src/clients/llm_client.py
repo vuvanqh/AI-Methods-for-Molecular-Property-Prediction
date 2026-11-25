@@ -5,7 +5,8 @@ from .client import Client
 
 
 class LLMClient(Client):
-    def __init__(self, base_url: str = settings.llm_service_url):
+    def __init__(self, base_url: str | None = None):
+        base_url = settings.llm_service_url if base_url is None else base_url
         super().__init__(base_url, settings.llm_timeout_seconds)
 
     async def get_summary(self, user_prompt: str):
