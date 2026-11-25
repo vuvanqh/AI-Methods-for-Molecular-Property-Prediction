@@ -13,6 +13,13 @@ class Chemprop(GNNPredictor):
 
     def __init__(self, n_tasks, device, thresholds):
         """Initialize the featurizer, BondMessagePassing, NormAggregation, and BinaryClassificationFFN."""
+        if n_tasks <= 0:
+            raise ValueError(f"n_tasks must be positive, got {n_tasks}")
+        if len(thresholds) != n_tasks:
+            raise ValueError(
+                f"thresholds length ({len(thresholds)}) must match n_tasks ({n_tasks})"
+            )
+
         self.device = device
         self.thresholds = torch.tensor(
             thresholds, dtype=torch.float32, device=self.device
@@ -59,7 +66,8 @@ class Chemprop(GNNPredictor):
         if torch.isnan(atom_embeddings).any() or torch.isinf(atom_embeddings).any():
             raise ModelInferenceError("NaN or Inf values detected in atom embeddings.")
 
-        logits = self.forward_from_embeddings(atom_embeddings)
+        with torch.no_grad():
+            logits = self.forward_from_embeddings(atom_embeddings)
 
         # Invariant checks on logits
         if logits.ndim != 2 or logits.shape[0] != 1 or logits.shape[1] != self.n_tasks:
