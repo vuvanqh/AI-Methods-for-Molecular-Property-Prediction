@@ -5,7 +5,8 @@ from .client import Client
 
 
 class GNNClient(Client):
-    def __init__(self, base_url: str = settings.gnn_service_url):
+    def __init__(self, base_url: str | None = None):
+        base_url = settings.gnn_service_url if base_url is None else base_url
         super().__init__(
             f"{base_url.rstrip('/')}/prediction_and_attribution",
             timeout=settings.gnn_timeout_seconds,
