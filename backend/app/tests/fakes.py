@@ -2,12 +2,9 @@ import json
 import uuid
 from collections.abc import Sequence
 from typing import Any
-from unittest.mock import create_autospec
 
 import httpx
 from rdkit import Chem
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.orm import Session
 
 from src.db.models import Molecule, MoleculeSource
 from src.rag.morgan_fingerprint_helper import (
@@ -77,37 +74,6 @@ def corpus_mol(smiles: str, sources: Sequence[tuple[str, str]] = ()) -> Molecule
             for p, i in sources
         ],
     )
-
-
-def fake_db() -> Session:
-    """Zero-arg `get_db` override that compiles Postgres SQL and filters excluded SMILES."""
-    corpus = [
-        (corpus_mol("CCO", [("ChEMBL", "CHEMBL545")]), 1.0),
-        (
-            corpus_mol("O=C(O)c1ccccc1O", [("ChEMBL", "CHEMBL424"), ("Unknown", "X1")]),
-            0.85,
-        ),
-    ]
-    db = create_autospec(Session, instance=True)
-
-    def _execute(stmt):
-        compiled = stmt.compile(dialect=postgresql.dialect())
-        excluded = {
-            val
-            for key, val in compiled.params.items()
-            if key.startswith("standardized_smiles") and isinstance(val, str)
-        }
-        rows = [
-            (mol, score)
-            for mol, score in corpus
-            if mol.standardized_smiles not in excluded
-        ]
-        result = db.execute.return_value
-        result.all.return_value = rows
-        return result
-
-    db.execute.side_effect = _execute
-    return db
 
 
 class FakeExternalServices:

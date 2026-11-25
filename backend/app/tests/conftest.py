@@ -42,3 +42,6 @@ def external_services(
     services = FakeExternalServices()
     mock_http(services.handle)
     return services
+
+
+pytest_plugins = ["tests.pg_fixtures"]

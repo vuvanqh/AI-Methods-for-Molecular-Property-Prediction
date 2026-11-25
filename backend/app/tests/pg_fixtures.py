@@ -1,4 +1,5 @@
 import sys
+import uuid
 from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
 
@@ -13,14 +14,13 @@ from testcontainers.community.postgres import PostgresContainer
 from src.db.models import Base, Molecule, MoleculeEmbedding, MoleculeSource
 from src.descriptors import standardize_smiles
 from src.rag.config import retrievalSettings, unimolSettings
-from src.rag.embeddings.unimol_embeddings import UniMolEmbeddings
 from src.rag.morgan_fingerprint_helper import (
     fingerprint_to_bitstring,
     generate_morgan_fingerprint,
 )
 
 PGVECTOR_IMAGE = "pgvector/pgvector:pg17"
-BACKEND_DIR = Path(__file__).resolve().parents[3]
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 
 def make_alembic_config(db_url: str) -> Config:
@@ -37,6 +37,8 @@ def make_alembic_config(db_url: str) -> Config:
 @pytest.fixture
 def isolated_rag_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     """Pin RAG settings so local `.env` overrides cannot perturb integration tests."""
+    from src.rag.embeddings.unimol_embeddings import UniMolEmbeddings
+
     monkeypatch.setattr(unimolSettings, "model_name", "unimolv1")
     monkeypatch.setattr(UniMolEmbeddings, "version", "unimolv1")
     monkeypatch.setattr(retrievalSettings, "fingerprint_weight", 0.5)
@@ -108,12 +110,14 @@ def seed_molecule(
     session: Session,
     smiles: str,
     *,
+    molecule_id: uuid.UUID | None = None,
     sources: Sequence[tuple[str, str]] = (),
     embeddings: Sequence[tuple[str, str, Sequence[float]]] = (),
 ) -> Molecule:
     """Insert a standardized `Molecule` with optional sources and embeddings into Postgres."""
     standardized = standardize_smiles(smiles)
     mol = Molecule(
+        id=molecule_id or uuid.uuid4(),
         standardized_smiles=standardized,
         morgan_fingerprint=fingerprint_to_bitstring(
             generate_morgan_fingerprint(standardized)
