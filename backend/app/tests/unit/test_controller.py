@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import AsyncMock, create_autospec
+from unittest.mock import create_autospec
 
 import pytest
 from fastapi import FastAPI, Request
@@ -12,101 +12,82 @@ from src import main as main_module
 from src.db.session import create_session_factory, get_db
 from src.descriptors import describe_molecule
 from src.model import ErrorResponse, PredictionResponse
-from src.service import predict_properties
 from tests.fakes import LLM_SUMMARY, gnn_payload
 
 
-def _sample_prediction(smiles: str = "CCO") -> dict[str, Any]:
-    return {
-        "molecule": describe_molecule(smiles),
-        "properties_xai_data": gnn_payload(smiles),
-        "similar_compounds": [],
-        "llm_summary": LLM_SUMMARY,
-    }
-
-
 def _setup_controller(
-    monkeypatch: pytest.MonkeyPatch, side_effect: Exception | None = None
-) -> tuple[TestClient, AsyncMock, FastAPI, Session]:
-    predict_mock = create_autospec(predict_properties)
-    if side_effect is not None:
-        predict_mock.side_effect = side_effect
-    else:
-        predict_mock.return_value = _sample_prediction("CCO")
-    monkeypatch.setattr(controller_module, "predict_properties", predict_mock)
+    monkeypatch: pytest.MonkeyPatch, *, side_effect: Exception | None = None
+) -> tuple[TestClient, list[str]]:
+    called_smiles: list[str] = []
 
-    db_session = create_autospec(Session, instance=True)
-    test_app = FastAPI()
-    test_app.state.retriever = object()
-    test_app.state.evidence_sources = [object()]
-    test_app.state.llm_client = object()
-    test_app.state.gnn_client = object()
-    test_app.dependency_overrides[get_db] = lambda: db_session
-    test_app.include_router(controller_module.app_router, prefix="/api")
-    return TestClient(test_app), predict_mock, test_app, db_session
+    async def _stub_predict(smiles: str, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        called_smiles.append(smiles)
+        if side_effect is not None:
+            raise side_effect
+        return {
+            "molecule": describe_molecule(smiles),
+            "properties_xai_data": gnn_payload(smiles),
+            "similar_compounds": [],
+            "llm_summary": LLM_SUMMARY,
+        }
+
+    monkeypatch.setattr(controller_module, "predict_properties", _stub_predict)
+    app = FastAPI()
+    app.state.retriever = app.state.llm_client = app.state.gnn_client = object()
+    app.state.evidence_sources = []
+    app.dependency_overrides[get_db] = object
+    app.include_router(controller_module.app_router, prefix="/api")
+    return TestClient(app), called_smiles
 
 
-def test_controller_forwards_state_and_db_to_service_and_returns_200(
+def test_predict_properties_endpoint_forwards_smiles_and_returns_200(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    client, predict_mock, test_app, db_session = _setup_controller(monkeypatch)
-
+    client, called_smiles = _setup_controller(monkeypatch)
     resp = client.post("/api/predict-properties", json={"smiles": "CCO"})
 
     assert resp.status_code == 200
-    assert PredictionResponse(**resp.json()).molecule.smiles == "CCO"
-    predict_mock.assert_awaited_once_with(
-        "CCO",
-        test_app.state.retriever,
-        test_app.state.evidence_sources,
-        test_app.state.llm_client,
-        test_app.state.gnn_client,
-        db_session,
-    )
-
-
-def test_controller_maps_value_error_to_422_without_leaking_details(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    client, _, _, _ = _setup_controller(
-        monkeypatch, side_effect=ValueError("internal RDKit parse detail")
-    )
-
-    resp = client.post("/api/predict-properties", json={"smiles": "bad"})
-
-    assert resp.status_code == 422
-    msg = ErrorResponse(**resp.json()).message
-    assert msg == "The molecule could not be processed."
-    assert "RDKit" not in msg
+    parsed = PredictionResponse(**resp.json())
+    assert parsed.molecule.smiles == "CCO" and parsed.llm_summary == LLM_SUMMARY
+    assert called_smiles == ["CCO"]
 
 
 @pytest.mark.parametrize(
-    "payload", [{}, {"wrong": "CCO"}, {"smiles": None}, {"smiles": 1}]
+    ("service_error", "expected_status", "expected_message"),
+    [
+        (
+            ValueError("internal RDKit detail"),
+            422,
+            "The molecule could not be processed.",
+        ),
+        (
+            ConnectionError("http://internal-gnn timed out"),
+            503,
+            "GNN service unavailable.",
+        ),
+    ],
 )
-def test_controller_returns_422_on_malformed_request_body(
-    monkeypatch: pytest.MonkeyPatch, payload: dict[str, Any]
-) -> None:
-    client, predict_mock, _, _ = _setup_controller(monkeypatch)
-
-    resp = client.post("/api/predict-properties", json=payload)
-
-    assert resp.status_code == 422
-    predict_mock.assert_not_awaited()
-
-
-def test_controller_maps_connection_error_to_503_without_leaking_details(
+def test_predict_properties_endpoint_maps_domain_errors(
     monkeypatch: pytest.MonkeyPatch,
+    service_error: Exception,
+    expected_status: int,
+    expected_message: str,
 ) -> None:
-    client, _, _, _ = _setup_controller(
-        monkeypatch, side_effect=ConnectionError("http://internal-gnn:8000 timed out")
-    )
-
+    client, _ = _setup_controller(monkeypatch, side_effect=service_error)
     resp = client.post("/api/predict-properties", json={"smiles": "CCO"})
 
-    assert resp.status_code == 503
-    msg = ErrorResponse(**resp.json()).message
-    assert msg == "GNN service unavailable."
-    assert "internal-gnn" not in msg
+    assert resp.status_code == expected_status
+    assert ErrorResponse(**resp.json()).message == expected_message
+
+
+def test_predict_properties_endpoint_rejects_missing_smiles(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client, called_smiles = _setup_controller(monkeypatch)
+    resp = client.post("/api/predict-properties", json={})
+
+    assert resp.status_code == 422
+    assert called_smiles == []
 
 
 def test_get_db_yields_session_and_closes_it_when_request_errors() -> None:

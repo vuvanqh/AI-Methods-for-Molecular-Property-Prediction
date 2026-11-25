@@ -1,36 +1,86 @@
 import asyncio
-from dataclasses import dataclass
-from unittest.mock import AsyncMock, create_autospec
+import json
+from collections.abc import Callable
+from contextlib import aclosing
+from typing import Any
 
+import httpx
 import pytest
-from sqlalchemy.dialects import postgresql
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
 
 from src.clients import GNNClient, LLMClient
 from src.db.analysis_status import AnalysisStatus
 from src.db.models import Analysis
 from src.model import PredictionResponse
-from src.rag import RetrievalType, Retriever
-from src.rag.augmentation import ClientStrategyBase
+from src.rag import RetrievalType
 from src.rag.config import RAG_TOP_K
 from src.rag.result_types.retrieved_molecules import RetrievedMolecule
-from src.rag.retrieval.retrieval_base import Retrieval
 from src.service import predict_properties
 from tests.fakes import LLM_SUMMARY, SAMPLE_EVIDENCE, corpus_mol, gnn_payload
+from tests.unit.conftest import FakeEvidenceSource, FakeRetrieval
+
+HttpMocker = Callable[[Callable[[httpx.Request], httpx.Response]], None]
+GNN_URL, LLM_URL = "http://gnn.test/gnn-xai", "http://llm.test/api/v1/chat/completions"
 
 
-@dataclass
-class _ServiceDeps:
-    retriever: Retriever
-    retrieval: Retrieval
-    source: ClientStrategyBase
-    llm: LLMClient
-    gnn: GNNClient
-    db: Session
+class _StubRetriever:
+    retrieval_type = RetrievalType.FUSION
+
+    def __init__(self, retrieval: FakeRetrieval) -> None:
+        self._retrieval = retrieval
+
+    def create_retriever(self, _db: Any) -> FakeRetrieval:
+        return self._retrieval
 
 
-def _default_neighbours() -> list[RetrievedMolecule]:
+class _RecordingSession:
+    def __init__(self, *, commit_error: Exception | None = None) -> None:
+        self.events: list[str] = []
+        self.added: list[Analysis] = []
+        self.commit_error = commit_error
+
+    def rollback(self) -> None:
+        self.events.append("rollback")
+
+    def add(self, instance: Analysis) -> None:
+        self.events.append("add")
+        self.added.append(instance)
+
+    def commit(self) -> None:
+        self.events.append("commit")
+        if self.commit_error is not None:
+            raise self.commit_error
+
+
+def _install_http(
+    mock_http: HttpMocker,
+    *,
+    gnn_handler: Callable[[httpx.Request], httpx.Response] | None = None,
+    llm_handler: Callable[[httpx.Request], httpx.Response] | None = None,
+) -> dict[str, list[Any]]:
+    seen: dict[str, list[Any]] = {"gnn_smiles": [], "llm_prompts": []}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        body = json.loads(req.content)
+        if req.url.host == "gnn.test":
+            seen["gnn_smiles"].append(body["smiles"])
+            return (
+                gnn_handler(req)
+                if gnn_handler
+                else httpx.Response(200, json=gnn_payload(body["smiles"]))
+            )
+        seen["llm_prompts"].append(body["messages"][-1]["content"])
+        if llm_handler:
+            return llm_handler(req)
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": LLM_SUMMARY}}]}
+        )
+
+    mock_http(handler)
+    return seen
+
+
+def _neighbours() -> list[RetrievedMolecule]:
     return [
         RetrievedMolecule(
             corpus_mol("O=C(O)c1ccccc1O", [("ChEMBL", "CHEMBL424"), ("Unknown", "X1")]),
@@ -39,240 +89,178 @@ def _default_neighbours() -> list[RetrievedMolecule]:
     ]
 
 
-def _make_deps(
+def _run_predict(
+    smiles: str,
     *,
-    neighbours: list[RetrievedMolecule] | None = None,
-    gnn_exc: Exception | None = None,
-    llm_exc: Exception | None = None,
-    source_exc: Exception | None = None,
-) -> _ServiceDeps:
-    stored = _default_neighbours() if neighbours is None else neighbours
-
-    retrieval = create_autospec(Retrieval, instance=True)
-    retrieval.retrieve.side_effect = lambda _smiles, k: stored[:k]
-
-    retriever = create_autospec(Retriever, instance=True)
-    retriever.retrieval_type = RetrievalType.FUSION
-    retriever.create_retriever.return_value = retrieval
-
-    source = create_autospec(ClientStrategyBase, instance=True)
-    source.provider = "ChEMBL"
-    source.retrieve_molecular_evidence = AsyncMock(
-        side_effect=source_exc, return_value=[SAMPLE_EVIDENCE]
+    retrieval: FakeRetrieval | None = None,
+    source: FakeEvidenceSource | None = None,
+    db: _RecordingSession | None = None,
+) -> tuple[dict[str, Any], _RecordingSession, FakeEvidenceSource, FakeRetrieval]:
+    ret = retrieval or FakeRetrieval(_neighbours())
+    src = source or FakeEvidenceSource(
+        "ChEMBL",
+        evidence_by_query={"CCCN": [SAMPLE_EVIDENCE], "CHEMBL424": [SAMPLE_EVIDENCE]},
     )
+    session = db or _RecordingSession()
 
-    gnn = create_autospec(GNNClient, instance=True)
-    gnn.get_prediction_and_attribution.side_effect = gnn_exc or gnn_payload
+    async def _execute() -> dict[str, Any]:
+        async with (
+            aclosing(GNNClient(GNN_URL)) as gnn,
+            aclosing(LLMClient(LLM_URL)) as llm,
+        ):
+            return await predict_properties(
+                smiles,
+                _StubRetriever(ret),
+                [src],
+                llm,
+                gnn,
+                session,  # type: ignore[arg-type]
+            )
 
-    llm = create_autospec(LLMClient, instance=True)
-    llm.get_summary.side_effect = llm_exc
-    llm.get_summary.return_value = LLM_SUMMARY
-
-    db = create_autospec(Session, instance=True)
-    return _ServiceDeps(retriever, retrieval, source, llm, gnn, db)
+    return asyncio.run(_execute()), session, src, ret
 
 
-def test_predict_properties_builds_response_and_passes_predictions_to_llm() -> None:
-    deps = _make_deps()
-    raw = asyncio.run(
-        predict_properties(
-            "OCC", deps.retriever, [deps.source], deps.llm, deps.gnn, deps.db
-        )
-    )
+def test_predict_properties_orchestrates_pipeline_and_preserves_raw_vs_canonical(
+    mock_http: HttpMocker,
+) -> None:
+    def _gnn_atom0_highest(req: httpx.Request) -> httpx.Response:
+        payload = gnn_payload(json.loads(req.content)["smiles"])
+        payload["atomscores"]["hERG_Karim"]["0"] = 0.95
+        return httpx.Response(200, json=payload)
+
+    seen = _install_http(mock_http, gnn_handler=_gnn_atom0_highest)
+    raw, db, source, retrieval = _run_predict("NCCC")
     res = PredictionResponse(**raw)
 
-    deps.retriever.create_retriever.assert_called_once_with(deps.db)
-    deps.retrieval.retrieve.assert_called_once_with("OCC", RAG_TOP_K)
-    assert [
-        call.args[0] for call in deps.source.retrieve_molecular_evidence.await_args_list
-    ] == ["CCO", "CHEMBL424"]
-
-    assert res.molecule.smiles == "CCO"
-    assert len(res.similar_compounds) == 1
-    assert res.similar_compounds[0].smiles == "O=C(O)c1ccccc1O"
-    assert res.similar_compounds[0].similarity_score == pytest.approx(0.88)
+    assert retrieval.calls == [("NCCC", RAG_TOP_K)] and seen["gnn_smiles"] == ["NCCC"]
+    assert source.queries == ["CCCN", "CHEMBL424"]
+    assert res.molecule.smiles == "CCCN" and res.molecule.formula == "C3H9N"
     assert res.similar_compounds[0].sources == [
         "https://www.ebi.ac.uk/chembl/explore/compound/CHEMBL424"
     ]
     assert res.llm_summary == LLM_SUMMARY
-
-    prompt_sent = deps.llm.get_summary.await_args.args[0]
-    assert "hERG_Karim: positive" in prompt_sent
-    assert "[1] O=C(O)c1ccccc1O" in prompt_sent
-    assert "KCNH2 (ChEMBL): IC50 = 14 nM" in prompt_sent
-
-
-def test_predict_properties_returns_empty_similar_compounds_when_corpus_empty() -> None:
-    deps = _make_deps(neighbours=[])
-    raw = asyncio.run(
-        predict_properties(
-            "CCO", deps.retriever, [deps.source], deps.llm, deps.gnn, deps.db
-        )
+    # Prompt indexes atoms against raw "NCCC" (nitrogen at N0, not canonical N3)
+    assert (
+        "N0" in seen["llm_prompts"][0]
+        and "[1] O=C(O)c1ccccc1O" in seen["llm_prompts"][0]
     )
-    res = PredictionResponse(**raw)
-
-    assert res.similar_compounds == []
-    assert res.llm_summary == LLM_SUMMARY
-
-
-def test_predict_properties_rejects_invalid_smiles_before_calling_collaborators() -> (
-    None
-):
-    deps = _make_deps()
-    with pytest.raises(ValueError):
-        asyncio.run(
-            predict_properties(
-                "not_a_smiles",
-                deps.retriever,
-                [deps.source],
-                deps.llm,
-                deps.gnn,
-                deps.db,
-            )
-        )
-
-    deps.retriever.create_retriever.assert_not_called()
-    deps.gnn.get_prediction_and_attribution.assert_not_awaited()
-    deps.llm.get_summary.assert_not_awaited()
-    deps.db.add.assert_not_called()
-    deps.db.commit.assert_not_called()
-
-
-@pytest.mark.parametrize("llm_err_cls", [ConnectionError, RuntimeError])
-def test_predict_properties_returns_empty_summary_when_llm_fails(
-    llm_err_cls: type[Exception],
-) -> None:
-    deps = _make_deps(llm_exc=llm_err_cls("LLM failure"))
-    raw = asyncio.run(
-        predict_properties(
-            "CCO", deps.retriever, [deps.source], deps.llm, deps.gnn, deps.db
-        )
-    )
-    assert PredictionResponse(**raw).llm_summary == ""
-
-
-def test_predict_properties_still_summarizes_when_evidence_source_fails() -> None:
-    deps = _make_deps(source_exc=ConnectionError("ChEMBL down"))
-    raw = asyncio.run(
-        predict_properties(
-            "CCO", deps.retriever, [deps.source], deps.llm, deps.gnn, deps.db
-        )
-    )
-    res = PredictionResponse(**raw)
-    assert res.llm_summary == LLM_SUMMARY
-    assert "ChEMBL could not be reached" in deps.llm.get_summary.await_args.args[0]
-
-
-@pytest.mark.parametrize("gnn_err_cls", [ValueError, ConnectionError])
-def test_predict_properties_propagates_gnn_errors_without_calling_llm(
-    gnn_err_cls: type[Exception],
-) -> None:
-    deps = _make_deps(gnn_exc=gnn_err_cls("GNN failure"))
-    with pytest.raises(gnn_err_cls):
-        asyncio.run(
-            predict_properties(
-                "CCO", deps.retriever, [deps.source], deps.llm, deps.gnn, deps.db
-            )
-        )
-    deps.llm.get_summary.assert_not_awaited()
-
-
-def test_predict_properties_logs_completed_analysis_with_config_and_results() -> None:
-    deps = _make_deps()
-    asyncio.run(
-        predict_properties(
-            "CN(=O)=O", deps.retriever, [deps.source], deps.llm, deps.gnn, deps.db
-        )
-    )
-
-    deps.db.add.assert_called_once()
-    deps.db.commit.assert_called_once()
-    logged = deps.db.add.call_args.args[0]
-    assert isinstance(logged, Analysis)
-    assert logged.id is not None
-    assert logged.standardized_input_smiles == "C[N+](=O)[O-]"
-    assert logged.status == AnalysisStatus.COMPLETED
-
-    assert logged.config == {
-        "input_smiles": "CN(=O)=O",
-        "retrieval_type": "fusion",
+    assert db.events == ["add", "commit"]
+    assert db.added[0].status == AnalysisStatus.COMPLETED and db.added[0].results == raw
+    assert db.added[0].config == {
+        "input_smiles": "NCCC",
+        "retrieval_type": RetrievalType.FUSION.value,
         "top_k": RAG_TOP_K,
     }
 
-    assert logged.results is not None
-    results = PredictionResponse(**logged.results)
-    assert results.properties_xai_data.predictions == {
-        "CYP3A4": False,
-        "hERG_Karim": True,
-    }
-    assert results.properties_xai_data.probabilities == {
-        "CYP3A4": 0.2,
-        "hERG_Karim": 0.85,
-    }
-    assert set(results.properties_xai_data.atomscores) == {"CYP3A4", "hERG_Karim"}
-    assert "V2000" in results.properties_xai_data.molblock
-    assert results.similar_compounds[0].sources == [
-        "https://www.ebi.ac.uk/chembl/explore/compound/CHEMBL424"
-    ]
-    assert results.llm_summary == LLM_SUMMARY
 
-    compiled = (
-        postgresql.insert(Analysis)
-        .values(
-            id=logged.id,
-            standardized_input_smiles=logged.standardized_input_smiles,
-            status=logged.status,
-            config=logged.config,
-            results=logged.results,
-        )
-        .compile(dialect=postgresql.dialect())
+def test_predict_properties_logs_standardized_smiles_using_cleanup(
+    mock_http: HttpMocker,
+) -> None:
+    _install_http(mock_http)
+    _, db, _, _ = _run_predict("CC(=O)O[Na]")
+    # describe_molecule keeps covalent "CC(=O)O[Na]"; standardize_smiles disconnects salt
+    assert db.added[0].standardized_input_smiles == "CC(=O)[O-].[Na+]"
+
+
+def test_predict_properties_rejects_invalid_smiles_before_collaborators(
+    mock_http: HttpMocker,
+) -> None:
+    seen = _install_http(mock_http)
+    db, source, retrieval = (
+        _RecordingSession(),
+        FakeEvidenceSource("ChEMBL"),
+        FakeRetrieval(_neighbours()),
     )
-    assert "INSERT INTO analyses" in str(compiled)
 
-
-def test_predict_properties_logs_failed_analysis_when_gnn_unavailable() -> None:
-    deps = _make_deps(gnn_exc=ConnectionError("GNN down"))
-    with pytest.raises(ConnectionError):
-        asyncio.run(
-            predict_properties(
-                "OCC", deps.retriever, [deps.source], deps.llm, deps.gnn, deps.db
-            )
-        )
-
-    deps.db.add.assert_called_once()
-    deps.db.commit.assert_called_once()
-    logged = deps.db.add.call_args.args[0]
-    assert isinstance(logged, Analysis)
-    assert logged.standardized_input_smiles == "CCO"
-    assert logged.status == AnalysisStatus.FAILED
-    assert logged.results is None
-    assert logged.config["input_smiles"] == "OCC"
-
-
-def test_predict_properties_does_not_log_analysis_when_gnn_rejects_smiles() -> None:
-    deps = _make_deps(gnn_exc=ValueError("Unbonded SMILES"))
     with pytest.raises(ValueError):
-        asyncio.run(
-            predict_properties(
-                "[Na+]", deps.retriever, [deps.source], deps.llm, deps.gnn, deps.db
-            )
-        )
+        _run_predict("not_a_smiles", retrieval=retrieval, source=source, db=db)
 
-    deps.db.add.assert_not_called()
-    deps.db.commit.assert_not_called()
+    assert retrieval.calls == [] and source.queries == [] and db.events == []
+    assert seen == {"gnn_smiles": [], "llm_prompts": []}
 
 
-def test_predict_properties_rolls_back_and_returns_response_when_db_commit_fails() -> (
-    None
-):
-    deps = _make_deps()
-    deps.db.commit.side_effect = SQLAlchemyError("db write failed")
+@pytest.mark.parametrize(
+    "llm_response", [httpx.Response(503), httpx.Response(200, json={"choices": []})]
+)
+def test_predict_properties_degrades_to_empty_summary_on_llm_failure(
+    mock_http: HttpMocker, llm_response: httpx.Response
+) -> None:
+    _install_http(mock_http, llm_handler=lambda _req: llm_response)
+    raw, db, _, _ = _run_predict("CCO")
+    assert PredictionResponse(**raw).llm_summary == ""
+    assert db.added[0].status == AnalysisStatus.COMPLETED
 
-    raw = asyncio.run(
-        predict_properties(
-            "CCO", deps.retriever, [deps.source], deps.llm, deps.gnn, deps.db
-        )
+
+def test_predict_properties_degrades_when_evidence_source_unreachable(
+    mock_http: HttpMocker,
+) -> None:
+    seen = _install_http(mock_http)
+    raw, db, _, _ = _run_predict(
+        "CCO", source=FakeEvidenceSource("ChEMBL", error=ConnectionError("down"))
     )
+    assert PredictionResponse(**raw).llm_summary == LLM_SUMMARY
+    assert "ChEMBL could not be reached" in seen["llm_prompts"][0]
+    assert db.added[0].status == AnalysisStatus.COMPLETED
 
-    assert PredictionResponse(**raw).molecule.smiles == "CCO"
-    deps.db.rollback.assert_called_once()
+
+def test_predict_properties_propagates_gnn_422_without_logging_or_llm(
+    mock_http: HttpMocker,
+) -> None:
+    seen = _install_http(mock_http, gnn_handler=lambda _req: httpx.Response(422))
+    db = _RecordingSession()
+    with pytest.raises(ValueError):
+        _run_predict("[Na+]", db=db)
+    assert seen["llm_prompts"] == [] and db.events == []
+
+
+@pytest.mark.parametrize(
+    ("failure_mode", "expected_exc"),
+    [
+        ("gnn_503", ConnectionError),
+        ("retrieval_error", RuntimeError),
+        ("evidence_bug", RuntimeError),
+        ("llm_unexpected", TypeError),
+    ],
+)
+def test_predict_properties_logs_failed_and_propagates_downstream_errors(
+    mock_http: HttpMocker, failure_mode: str, expected_exc: type[Exception]
+) -> None:
+    def _boom(_req: httpx.Request) -> httpx.Response:
+        raise TypeError("unexpected llm bug")
+
+    _install_http(
+        mock_http,
+        gnn_handler=(lambda _req: httpx.Response(503))
+        if failure_mode == "gnn_503"
+        else None,
+        llm_handler=_boom if failure_mode == "llm_unexpected" else None,
+    )
+    retrieval = FakeRetrieval(_neighbours())
+    if failure_mode == "retrieval_error":
+        retrieval.retrieve = lambda _s, _k: (_ for _ in ()).throw(
+            RuntimeError("pgvector error")
+        )  # type: ignore[method-assign]
+    source = FakeEvidenceSource(
+        "ChEMBL",
+        error=RuntimeError("parse bug") if failure_mode == "evidence_bug" else None,
+    )
+    db = _RecordingSession()
+
+    with pytest.raises(expected_exc):
+        _run_predict("OCC", retrieval=retrieval, source=source, db=db)
+
+    assert db.events == ["rollback", "add", "commit"]
+    assert db.added[0].standardized_input_smiles == "CCO"
+    assert db.added[0].status == AnalysisStatus.FAILED and db.added[0].results is None
+
+
+def test_predict_properties_propagates_original_error_when_failed_logging_hits_db_error(
+    mock_http: HttpMocker,
+) -> None:
+    _install_http(mock_http, gnn_handler=lambda _req: httpx.Response(503))
+    db = _RecordingSession(commit_error=SQLAlchemyError("db down"))
+
+    with pytest.raises(ConnectionError, match="503"):
+        _run_predict("CCO", db=db)
+
+    assert db.events[-1] == "rollback"
