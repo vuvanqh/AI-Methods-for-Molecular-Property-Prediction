@@ -32,6 +32,47 @@ def test_client_aclose_closes_underlying_http_pool(mock_http: HttpMocker) -> Non
     assert client.http.is_closed
 
 
+def test_clients_resolve_default_base_url_lazily_from_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "gnn_service_url", "http://runtime-gnn.test/")
+    monkeypatch.setattr(
+        settings, "llm_service_url", "http://runtime-llm.test/v1/chat/completions"
+    )
+    monkeypatch.setattr(
+        settings, "chembl_api_url", "http://runtime-chembl.test/api/data"
+    )
+
+    cases = [
+        (GNNClient, None, "http://runtime-gnn.test/prediction_and_attribution"),
+        (LLMClient, None, "http://runtime-llm.test/v1/chat/completions"),
+        (ChEMBLClient, None, "http://runtime-chembl.test/api/data/"),
+        (
+            GNNClient,
+            "http://explicit-gnn.test/",
+            "http://explicit-gnn.test/prediction_and_attribution",
+        ),
+        (
+            LLMClient,
+            "http://explicit-llm.test/completions",
+            "http://explicit-llm.test/completions",
+        ),
+        (
+            ChEMBLClient,
+            "http://explicit-chembl.test/data",
+            "http://explicit-chembl.test/data/",
+        ),
+    ]
+
+    async def _check() -> None:
+        for client_cls, base_url, expected_url in cases:
+            client = client_cls() if base_url is None else client_cls(base_url=base_url)
+            async with aclosing(client):
+                assert str(client.url) == expected_url
+
+    asyncio.run(_check())
+
+
 def test_gnn_client_posts_smiles_and_returns_parsed_payload(
     mock_http: HttpMocker,
 ) -> None:

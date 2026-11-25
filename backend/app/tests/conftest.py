@@ -7,12 +7,6 @@ import pytest
 from src.core.config import settings
 from tests.fakes import FakeExternalServices
 
-# `src/db/session.py` calls `create_engine(settings.database_url)` at import time.
-# In CI (where no `.env` exists), `database_url` defaults to `""`, which crashes SQLAlchemy;
-# use an in-memory SQLite URL so imports succeed without a running Postgres server.
-if not settings.database_url:
-    settings.database_url = "sqlite:///:memory:"
-
 
 @pytest.fixture
 def mock_http(
