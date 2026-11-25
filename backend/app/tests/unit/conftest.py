@@ -13,7 +13,7 @@ from tests.fakes import SAMPLE_EVIDENCE
 
 
 def run_client[T, R](client: T, action: Callable[[T], Any]) -> R:
-    async def _execute() -> R:
+    async def _execute():
         async with aclosing(client):
             return await action(client)
 
