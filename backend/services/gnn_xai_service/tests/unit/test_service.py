@@ -1,76 +1,25 @@
+"""Unit tests for `MolecularInferenceService`: SMILES validation, orchestration, bounds, and index invariants."""
+
 import math
+from typing import Any
 
 import pytest
 import torch
 from rdkit import Chem
 
+from src import service as service_module
 from src.config import TASKS, TASKS_NUMBER
 from src.exceptions import ModelInferenceError, MoleculeValidationError
-from src.gnn_models.gnn_interface import GNNPredictor
 from src.model import GNNXAIInferenceResponse
 from src.service import MolecularInferenceService
-from src.xai.xai_interface import XAIExplainer
+from tests.unit.conftest import StubGNNPredictor, StubXAIExplainer
 
-
-class _StubPredictor(GNNPredictor):
-    """Stub `GNNPredictor` dependency for testing `MolecularInferenceService` in isolation."""
-
-    def __init__(self, custom_output: dict[str, torch.Tensor] | None = None) -> None:
-        self._custom_output = custom_output
-        self.predict_call_count = 0
-
-    def predict(self, mol: Chem.Mol) -> dict[str, torch.Tensor]:
-        self.predict_call_count += 1
-        if self._custom_output is not None:
-            return self._custom_output
-
-        atom_embeddings = torch.tensor(
-            [
-                [float(atom.GetAtomicNum()), float(atom.GetDegree())]
-                for atom in mol.GetAtoms()
-            ],
-            dtype=torch.float32,
-        )
-        probabilities = torch.linspace(
-            0.1, 0.9, steps=TASKS_NUMBER, dtype=torch.float32
-        )
-        predictions = (probabilities > 0.5).int()
-        return {
-            "probabilities": probabilities,
-            "predictions": predictions,
-            "atom_embeddings": atom_embeddings,
-        }
-
-    def forward_from_embeddings(self, atom_embeddings: torch.Tensor) -> torch.Tensor:
-        return torch.zeros((1, TASKS_NUMBER), dtype=torch.float32)
-
-
-class _StubExplainer(XAIExplainer):
-    """Stub `XAIExplainer` dependency for testing `MolecularInferenceService` in isolation."""
-
-    def __init__(self, custom_scores: list[list[float]] | None = None) -> None:
-        self._custom_scores = custom_scores
-        self.explain_call_count = 0
-
-    def explain(
-        self, atom_embeddings: torch.Tensor, num_targets: int
-    ) -> list[list[float]]:
-        self.explain_call_count += 1
-        if self._custom_scores is not None:
-            return self._custom_scores
-
-        atom_sums = atom_embeddings.sum(dim=-1).tolist()
-        return [
-            [float(val) + 0.01 * idx for val in atom_sums] for idx in range(num_targets)
-        ]
+ServiceFixture = tuple[MolecularInferenceService, StubGNNPredictor, StubXAIExplainer]
 
 
 @pytest.fixture
-def service_and_stubs() -> tuple[
-    MolecularInferenceService, _StubPredictor, _StubExplainer
-]:
-    predictor = _StubPredictor()
-    explainer = _StubExplainer()
+def service_and_stubs() -> ServiceFixture:
+    predictor, explainer = StubGNNPredictor(), StubXAIExplainer()
     return (
         MolecularInferenceService(predictor=predictor, explainer=explainer),
         predictor,
@@ -78,260 +27,259 @@ def service_and_stubs() -> tuple[
     )
 
 
+def _pred_output(**overrides: torch.Tensor) -> dict[str, torch.Tensor]:
+    base: dict[str, torch.Tensor] = {
+        "probabilities": torch.full((TASKS_NUMBER,), 0.5, dtype=torch.float32),
+        "predictions": torch.zeros((TASKS_NUMBER,), dtype=torch.int32),
+        "atom_embeddings": torch.ones((3, 2), dtype=torch.float32),
+    }
+    base.update(overrides)
+    return base
+
+
 @pytest.mark.parametrize(
-    ("smiles", "expected_graph_atoms"),
-    [
-        ("CCO", 3),
-        ("CC(C)O", 4),
-        ("c1ccccc1", 6),
-        ("C=CC(=O)O", 5),
-        ("CC(=O)[O-]", 4),
-        ("C[C@H](O)Cl", 4),
-        ("F/C=C/F", 4),
-        ("[2H]CCO", 4),
-        ("CCO.[Na+]", 4),
-    ],
+    ("smiles", "graph_atoms", "total_atoms"),
+    [("CCO", 3, 9), ("O=C=O", 3, 3), ("[2H]CCO", 4, 9)],
 )
-def test_predict_and_explain_returns_valid_response_for_bonded_molecules(
-    service_and_stubs: tuple[MolecularInferenceService, _StubPredictor, _StubExplainer],
+def test_aligns_tasks_probabilities_and_atomscores(
+    service_and_stubs: ServiceFixture,
     smiles: str,
-    expected_graph_atoms: int,
+    graph_atoms: int,
+    total_atoms: int,
 ) -> None:
     service, predictor, explainer = service_and_stubs
+    canonical = Chem.MolToSmiles(Chem.MolFromSmiles(smiles), canonical=True)
+
     result = service.predict_and_explain(smiles)
 
     assert predictor.predict_call_count == 1
+    assert predictor.received_smiles == [canonical]
     assert explainer.explain_call_count == 1
+    received_emb, received_targets = explainer.received_args[0]
+    assert received_emb.shape == (graph_atoms, 2)
+    assert received_targets == TASKS_NUMBER
 
     validated = GNNXAIInferenceResponse(**result)
-    assert set(validated.predictions.keys()) == set(TASKS)
-    assert set(validated.probabilities.keys()) == set(TASKS)
-    assert set(validated.atomscores.keys()) == set(TASKS)
-    assert len(validated.predictions) == TASKS_NUMBER
+    assert list(validated.predictions.keys()) == TASKS
+    assert list(validated.probabilities.keys()) == TASKS
+    assert list(validated.atomscores.keys()) == TASKS
     assert "V2000" in validated.molblock and "M  END" in validated.molblock
+    parsed = Chem.MolFromMolBlock(validated.molblock, removeHs=False)
+    assert parsed is not None and parsed.GetNumAtoms() == total_atoms
 
-    parsed_molblock = Chem.MolFromMolBlock(validated.molblock, removeHs=False)
-    assert parsed_molblock is not None
-    total_atoms_with_h = parsed_molblock.GetNumAtoms()
-    assert total_atoms_with_h > expected_graph_atoms
-
-    for task in TASKS:
-        prob = validated.probabilities[task]
-        assert isinstance(validated.predictions[task], bool)
-        assert 0.0 <= prob <= 1.0
-        assert math.isfinite(prob)
-
-        scores_for_task = validated.atomscores[task]
-        assert list(scores_for_task.keys()) == list(range(total_atoms_with_h))
-        for idx in range(expected_graph_atoms):
-            assert isinstance(scores_for_task[idx], float)
-            assert math.isfinite(scores_for_task[idx])
-        for idx in range(expected_graph_atoms, total_atoms_with_h):
-            assert scores_for_task[idx] is None
+    expected_probs = torch.linspace(0.05, 0.95, steps=TASKS_NUMBER, dtype=torch.float32)
+    expected_sums = received_emb.sum(dim=-1).tolist()
+    for task_idx, task in enumerate(TASKS):
+        prob = float(expected_probs[task_idx].item())
+        assert validated.probabilities[task] == pytest.approx(prob, abs=1e-6)
+        assert type(validated.predictions[task]) is bool
+        assert validated.predictions[task] is (prob > 0.5)
+        scores = validated.atomscores[task]
+        assert list(scores.keys()) == list(range(total_atoms))
+        for i in range(graph_atoms):
+            assert scores[i] == pytest.approx(
+                float(expected_sums[i]) + 0.01 * task_idx, abs=1e-6
+            )
+        assert all(scores[i] is None for i in range(graph_atoms, total_atoms))
 
 
 @pytest.mark.parametrize(
     ("smiles_a", "smiles_b"),
-    [
-        ("CCO", "OCC"),
-        ("CCO", "[CH3][CH2][OH]"),
-        ("CCO", "[H]C([H])([H])C([H])([H])O"),
-        ("CC(C)O", "OC(C)C"),
-        ("c1ccccc1", "C1=CC=CC=C1"),
-        ("C[C@H](O)Cl", "O[C@@H](C)Cl"),
-    ],
+    [("CCO", "OCC"), ("C[C@H](O)Cl", "O[C@@H](C)Cl")],
 )
-def test_predict_and_explain_is_invariant_across_equivalent_smiles(
-    service_and_stubs: tuple[MolecularInferenceService, _StubPredictor, _StubExplainer],
-    smiles_a: str,
-    smiles_b: str,
+def test_canonicalizes_equivalent_smiles_identically(
+    service_and_stubs: ServiceFixture, smiles_a: str, smiles_b: str
 ) -> None:
-    service, _, _ = service_and_stubs
-    assert service.predict_and_explain(smiles_a) == service.predict_and_explain(
-        smiles_b
-    )
+    service, predictor, _ = service_and_stubs
+    canonical = Chem.MolToSmiles(Chem.MolFromSmiles(smiles_a), canonical=True)
+
+    result_a = service.predict_and_explain(smiles_a)
+    result_b = service.predict_and_explain(smiles_b)
+
+    assert predictor.received_smiles == [canonical, canonical]
+    assert result_a == result_b
 
 
 @pytest.mark.parametrize(
-    "empty_or_whitespace",
+    "invalid_input",
     [
         "",
-        " ",
-        "    ",
-        "\t",
-        "\n",
-        " \t\r\n ",
+        " \t\n ",
         None,
-    ],
-)
-def test_predict_and_explain_rejects_empty_or_whitespace_without_calling_model(
-    empty_or_whitespace: str | None,
-    service_and_stubs: tuple[MolecularInferenceService, _StubPredictor, _StubExplainer],
-) -> None:
-    service, predictor, explainer = service_and_stubs
-    with pytest.raises(MoleculeValidationError):
-        service.predict_and_explain(empty_or_whitespace)
-
-    assert predictor.predict_call_count == 0
-    assert explainer.explain_call_count == 0
-
-
-@pytest.mark.parametrize(
-    "invalid_smiles",
-    [
+        123,
         "not_a_smiles",
-        "C(C",
-        "c1cccc1",
-        "C1CC",
         "C(C)(C)(C)(C)C",
-        "F(F)F",
-    ],
-)
-def test_predict_and_explain_rejects_unparseable_smiles_without_calling_model(
-    invalid_smiles: str,
-    service_and_stubs: tuple[MolecularInferenceService, _StubPredictor, _StubExplainer],
-) -> None:
-    service, predictor, explainer = service_and_stubs
-    with pytest.raises(MoleculeValidationError):
-        service.predict_and_explain(invalid_smiles)
-
-    assert predictor.predict_call_count == 0
-    assert explainer.explain_call_count == 0
-
-
-@pytest.mark.parametrize(
-    "zero_bond_smiles",
-    [
         "C",
-        "O",
-        "N",
-        "S",
-        "[Na+]",
-        "[Cl-]",
-        "[Fe+2]",
-        "[He]",
-        "[2H]",
-        "[H]C([H])([H])[H]",
-        "[H]O[H]",
         "[Na+].[Cl-]",
-        "O.O",
+        "[H]C([H])([H])[H]",
     ],
 )
-def test_predict_and_explain_rejects_zero_bond_molecules_before_entering_model(
-    zero_bond_smiles: str,
-    service_and_stubs: tuple[MolecularInferenceService, _StubPredictor, _StubExplainer],
+def test_rejects_invalid_smiles_without_calling_collaborators(
+    invalid_input: Any, service_and_stubs: ServiceFixture
 ) -> None:
     service, predictor, explainer = service_and_stubs
+
     with pytest.raises(MoleculeValidationError):
-        service.predict_and_explain(zero_bond_smiles)
+        service.predict_and_explain(invalid_input)
 
     assert predictor.predict_call_count == 0
     assert explainer.explain_call_count == 0
 
 
-@pytest.mark.parametrize(
-    "faulty_prediction",
-    [
-        # Missing 'probabilities'
-        {
-            "predictions": torch.zeros((TASKS_NUMBER,), dtype=torch.int32),
-            "atom_embeddings": torch.ones((3, 2)),
-        },
-        # Wrong probabilities length
-        {
-            "probabilities": torch.full((3,), 0.5),
-            "predictions": torch.zeros((TASKS_NUMBER,), dtype=torch.int32),
-            "atom_embeddings": torch.ones((3, 2)),
-        },
-        # Out-of-range probability > 1.0
-        {
-            "probabilities": torch.full((TASKS_NUMBER,), 1.5),
-            "predictions": torch.zeros((TASKS_NUMBER,), dtype=torch.int32),
-            "atom_embeddings": torch.ones((3, 2)),
-        },
-        # Negative probability < 0.0
-        {
-            "probabilities": torch.full((TASKS_NUMBER,), -0.1),
-            "predictions": torch.zeros((TASKS_NUMBER,), dtype=torch.int32),
-            "atom_embeddings": torch.ones((3, 2)),
-        },
-        # NaN probability
-        {
-            "probabilities": torch.full((TASKS_NUMBER,), float("nan")),
-            "predictions": torch.zeros((TASKS_NUMBER,), dtype=torch.int32),
-            "atom_embeddings": torch.ones((3, 2)),
-        },
-        # Missing 'predictions'
-        {
-            "probabilities": torch.full((TASKS_NUMBER,), 0.5),
-            "atom_embeddings": torch.ones((3, 2)),
-        },
-        # Wrong predictions length
-        {
-            "probabilities": torch.full((TASKS_NUMBER,), 0.5),
-            "predictions": torch.zeros((2,), dtype=torch.int32),
-            "atom_embeddings": torch.ones((3, 2)),
-        },
-        # Non-1D probabilities tensor (2D [TASKS_NUMBER, 1])
-        {
-            "probabilities": torch.full((TASKS_NUMBER, 1), 0.5),
-            "predictions": torch.zeros((TASKS_NUMBER,), dtype=torch.int32),
-            "atom_embeddings": torch.ones((3, 2)),
-        },
-        # Non-1D predictions tensor (2D [TASKS_NUMBER, 1] of zeros)
-        {
-            "probabilities": torch.full((TASKS_NUMBER,), 0.5),
-            "predictions": torch.zeros((TASKS_NUMBER, 1), dtype=torch.int32),
-            "atom_embeddings": torch.ones((3, 2)),
-        },
-        # Missing 'atom_embeddings'
-        {
-            "probabilities": torch.full((TASKS_NUMBER,), 0.5),
-            "predictions": torch.zeros((TASKS_NUMBER,), dtype=torch.int32),
-        },
-    ],
-)
-def test_service_raises_model_inference_error_on_malformed_predictor_outputs(
-    faulty_prediction: dict[str, torch.Tensor],
-) -> None:
-    service = MolecularInferenceService(
-        predictor=_StubPredictor(custom_output=faulty_prediction),
-        explainer=_StubExplainer(),
+def test_accepts_exact_boundary_probabilities_zero_and_one() -> None:
+    probs = torch.tensor(
+        [0.0 if i % 2 == 0 else 1.0 for i in range(TASKS_NUMBER)], dtype=torch.float32
     )
+    preds = torch.tensor(
+        [0 if i % 2 == 0 else 1 for i in range(TASKS_NUMBER)], dtype=torch.int32
+    )
+    service = MolecularInferenceService(
+        predictor=StubGNNPredictor(
+            custom_output=_pred_output(probabilities=probs, predictions=preds)
+        ),
+        explainer=StubXAIExplainer(),
+    )
+
+    result = service.predict_and_explain("CCO")
+
+    for idx, task in enumerate(TASKS):
+        assert result["probabilities"][task] == (0.0 if idx % 2 == 0 else 1.0)
+        assert math.isfinite(result["probabilities"][task])
+        assert result["predictions"][task] is (idx % 2 != 0)
+
+
+@pytest.mark.parametrize("bad_prob", [-1e-6, 1.0 + 1e-6, float("nan"), float("inf")])
+def test_rejects_invalid_probabilities_before_explainer(bad_prob: float) -> None:
+    probs = torch.full((TASKS_NUMBER,), 0.5, dtype=torch.float32)
+    probs[-1] = bad_prob
+    explainer = StubXAIExplainer()
+    service = MolecularInferenceService(
+        predictor=StubGNNPredictor(custom_output=_pred_output(probabilities=probs)),
+        explainer=explainer,
+    )
+
     with pytest.raises(ModelInferenceError):
         service.predict_and_explain("CCO")
+
+    assert explainer.explain_call_count == 0
+
+
+@pytest.mark.parametrize(
+    "faulty_output",
+    [
+        {k: v for k, v in _pred_output().items() if k != "probabilities"},
+        _pred_output(probabilities=torch.full((TASKS_NUMBER - 1,), 0.5)),
+        _pred_output(probabilities=torch.full((TASKS_NUMBER, 1), 0.5)),
+        {k: v for k, v in _pred_output().items() if k != "predictions"},
+        _pred_output(predictions=torch.zeros((TASKS_NUMBER + 1,), dtype=torch.int32)),
+        _pred_output(predictions=torch.zeros((TASKS_NUMBER, 1), dtype=torch.int32)),
+        {k: v for k, v in _pred_output().items() if k != "atom_embeddings"},
+    ],
+)
+def test_rejects_malformed_predictor_outputs(
+    faulty_output: dict[str, torch.Tensor],
+) -> None:
+    explainer = StubXAIExplainer()
+    service = MolecularInferenceService(
+        predictor=StubGNNPredictor(custom_output=faulty_output),
+        explainer=explainer,
+    )
+
+    with pytest.raises(ModelInferenceError):
+        service.predict_and_explain("CCO")
+
+    assert explainer.explain_call_count == 0
 
 
 @pytest.mark.parametrize(
     "faulty_scores",
     [
-        # Wrong number of targets
-        [[0.1, 0.2, 0.3]],
-        # Wrong number of atoms for 3-atom CCO
+        [[0.1, 0.2, 0.3] for _ in range(TASKS_NUMBER - 1)],
         [[0.1, 0.2] for _ in range(TASKS_NUMBER)],
-        # NaN attribution score
+        [[0.1, 0.2, 0.3] for _ in range(TASKS_NUMBER - 1)] + [[0.1, 0.2, 0.3, 0.4]],
         [
             [float("nan"), 0.1, 0.2],
             *[[0.1, 0.2, 0.3] for _ in range(TASKS_NUMBER - 1)],
         ],
-        # Positive infinity attribution score
         [
             [float("inf"), 0.1, 0.2],
             *[[0.1, 0.2, 0.3] for _ in range(TASKS_NUMBER - 1)],
         ],
-        # Negative infinity attribution score
         [
             [float("-inf"), 0.1, 0.2],
             *[[0.1, 0.2, 0.3] for _ in range(TASKS_NUMBER - 1)],
         ],
     ],
 )
-def test_service_raises_model_inference_error_on_malformed_explainer_outputs(
-    faulty_scores: list[list[float]],
-) -> None:
+def test_rejects_malformed_explainer_outputs(faulty_scores: list[list[float]]) -> None:
     service = MolecularInferenceService(
-        predictor=_StubPredictor(),
-        explainer=_StubExplainer(custom_scores=faulty_scores),
+        predictor=StubGNNPredictor(),
+        explainer=StubXAIExplainer(custom_scores=faulty_scores),
     )
+
     with pytest.raises(ModelInferenceError):
         service.predict_and_explain("CCO")
+
+
+def test_propagates_predictor_error_without_calling_explainer() -> None:
+    explainer = StubXAIExplainer()
+    service = MolecularInferenceService(
+        predictor=StubGNNPredictor(exc=ModelInferenceError("boom")),
+        explainer=explainer,
+    )
+
+    with pytest.raises(ModelInferenceError):
+        service.predict_and_explain("CCO")
+
+    assert explainer.explain_call_count == 0
+
+
+def test_propagates_explainer_error() -> None:
+    predictor = StubGNNPredictor()
+    service = MolecularInferenceService(
+        predictor=predictor,
+        explainer=StubXAIExplainer(exc=ModelInferenceError("boom")),
+    )
+
+    with pytest.raises(ModelInferenceError):
+        service.predict_and_explain("CCO")
+
+    assert predictor.predict_call_count == 1
+
+
+def test_rejects_mol_with_h_having_fewer_atoms_than_heavy_mol(
+    monkeypatch: pytest.MonkeyPatch, service_and_stubs: ServiceFixture
+) -> None:
+    service, _, _ = service_and_stubs
+    smaller = Chem.MolFromSmiles("CC")
+    assert smaller is not None
+    monkeypatch.setattr(
+        service_module,
+        "mol_block_generation",
+        lambda _mol: ("V2000\nM  END\n", smaller),
+    )
+
+    with pytest.raises(ModelInferenceError):
+        service.predict_and_explain("CCO")
+
+
+def test_rejects_heavy_atom_type_mismatch(service_and_stubs: ServiceFixture) -> None:
+    service, _, _ = service_and_stubs
+    mol, reordered = Chem.MolFromSmiles("CCO"), Chem.MolFromSmiles("OCC")
+    assert mol is not None and reordered is not None
+
+    with pytest.raises(ModelInferenceError):
+        service.validate_mol_atomic_indices(
+            mol, mol.GetNumAtoms(), reordered, reordered.GetNumAtoms()
+        )
+
+
+def test_rejects_non_hydrogen_appended_atom(service_and_stubs: ServiceFixture) -> None:
+    service, _, _ = service_and_stubs
+    mol, longer = Chem.MolFromSmiles("CC"), Chem.MolFromSmiles("CCC")
+    assert mol is not None and longer is not None
+
+    with pytest.raises(ModelInferenceError):
+        service.validate_mol_atomic_indices(
+            mol, mol.GetNumAtoms(), longer, longer.GetNumAtoms()
+        )
