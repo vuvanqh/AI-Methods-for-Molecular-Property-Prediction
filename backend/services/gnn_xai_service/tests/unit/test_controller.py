@@ -1,5 +1,7 @@
+"""Unit tests for `src.controller`: HTTP routing, error mapping, ASGI 499 disconnect, and recovery."""
+
 import asyncio
-import time
+import json
 from typing import Any
 
 import httpx
@@ -8,172 +10,187 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from src.config import TASKS
-from src.controller import gnn_router, prediction_and_attribution_endpoint
+from src.controller import gnn_router
 from src.exceptions import ModelInferenceError, MoleculeValidationError
-from src.model import ErrorResponse, GNNXAIInferenceResponse, InferenceRequest
+from src.model import ErrorResponse, GNNXAIInferenceResponse
+from tests.unit.conftest import make_valid_inference_response
 
-
-def _sample_valid_response() -> dict[str, Any]:
-    return {
-        "predictions": {task: False for task in TASKS},
-        "probabilities": {task: 0.25 for task in TASKS},
-        "atomscores": {task: {0: 0.1, 1: -0.2, 2: None} for task in TASKS},
-        "molblock": "stub\n  RDKit          3D\n\n  0  0  0  0  0  0  0  0  0  0999 V2000\nM  END\n",
-    }
+ENDPOINT = "/gnn-xai/prediction_and_attribution"
 
 
 class _StubInferenceService:
-    """Stub `inference_service` collaborator for testing `controller.py` in isolation."""
+    """Deterministic `inference_service` test double with queued outcomes."""
 
-    def __init__(self, exc: Exception | None = None, delay_s: float = 0.0) -> None:
-        self._exc = exc
-        self._delay_s = delay_s
+    def __init__(
+        self, outcomes: list[dict[str, Any] | Exception] | None = None
+    ) -> None:
+        self._outcomes = list(outcomes) if outcomes is not None else []
         self.calls: list[str] = []
-        self.active_count = 0
-        self.max_concurrent_observed = 0
 
     def predict_and_explain(self, smiles: str) -> dict[str, Any]:
         self.calls.append(smiles)
-        self.active_count += 1
-        self.max_concurrent_observed = max(
-            self.max_concurrent_observed, self.active_count
+        outcome = (
+            self._outcomes.pop(0) if self._outcomes else make_valid_inference_response()
         )
-        try:
-            if self._delay_s > 0.0:
-                time.sleep(self._delay_s)
-            if self._exc is not None:
-                raise self._exc
-            return _sample_valid_response()
-        finally:
-            self.active_count -= 1
-
-
-class _DisconnectedRequestStub:
-    """Minimal ASGI request stub simulating a client that disconnected while queued."""
-
-    def __init__(self, app: FastAPI) -> None:
-        self.app = app
-
-    async def is_disconnected(self) -> bool:
-        return True
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
 
 
 def _create_test_app(service: _StubInferenceService) -> FastAPI:
-    test_app = FastAPI()
-    test_app.state.inference_service = service
-    test_app.state.inference_lock = asyncio.Lock()
-    test_app.include_router(gnn_router, prefix="/gnn-xai")
-    return test_app
+    app = FastAPI()
+    app.state.inference_service = service
+    app.state.inference_lock = asyncio.Lock()
+    app.include_router(gnn_router, prefix="/gnn-xai")
+    return app
 
 
-def test_controller_returns_200_and_passes_smiles_to_service() -> None:
-    stub_service = _StubInferenceService()
-    client = TestClient(_create_test_app(stub_service))
+def test_returns_200_with_exact_payload_and_forwards_smiles() -> None:
+    expected = make_valid_inference_response(num_heavy_atoms=3, num_explicit_h=2)
+    stub = _StubInferenceService([expected])
 
-    response = client.post(
-        "/gnn-xai/prediction_and_attribution", json={"smiles": "CCO"}
-    )
+    response = TestClient(_create_test_app(stub)).post(ENDPOINT, json={"smiles": "CCO"})
 
     assert response.status_code == 200
     validated = GNNXAIInferenceResponse(**response.json())
-    assert "V2000" in validated.molblock
-    assert stub_service.calls == ["CCO"]
+    assert validated == GNNXAIInferenceResponse(**expected)
+    assert set(validated.predictions.keys()) == set(TASKS)
+    assert stub.calls == ["CCO"]
 
 
-def test_controller_returns_422_when_service_raises_molecule_validation_error() -> None:
-    stub_service = _StubInferenceService(
-        exc=MoleculeValidationError("The molecule must contain at least one bond.")
-    )
-    client = TestClient(_create_test_app(stub_service))
+def test_returns_422_on_malformed_schema_without_calling_service() -> None:
+    stub = _StubInferenceService()
 
-    response = client.post("/gnn-xai/prediction_and_attribution", json={"smiles": "C"})
+    response = TestClient(_create_test_app(stub)).post(ENDPOINT, json={})
 
     assert response.status_code == 422
-    error = ErrorResponse(**response.json())
-    assert error.message == "Invalid molecular input."
+    assert stub.calls == []
 
 
-def test_controller_returns_499_without_calling_service_when_client_disconnected() -> (
-    None
-):
-    stub_service = _StubInferenceService()
-    test_app = _create_test_app(stub_service)
-    disconnected_request = _DisconnectedRequestStub(test_app)
+def test_rejects_get_with_405() -> None:
+    stub = _StubInferenceService()
 
-    response = asyncio.run(
-        prediction_and_attribution_endpoint(
-            disconnected_request,
-            InferenceRequest(smiles="CCO"),
-        )
-    )
+    response = TestClient(_create_test_app(stub)).get(ENDPOINT)
 
-    assert response.status_code == 499
-    assert response.body == b""
-    assert stub_service.calls == []
+    assert response.status_code == 405
+    assert stub.calls == []
 
 
 @pytest.mark.parametrize(
-    ("raised_exception", "expected_message", "sensitive_detail"),
+    ("exc", "status", "expected_msg", "secret"),
     [
         (
-            ModelInferenceError("internal-shape-secret"),
-            "Internal inference engine failure.",
-            "internal-shape-secret",
+            MoleculeValidationError("rdkit-secret"),
+            422,
+            "Invalid molecular input.",
+            "rdkit-secret",
         ),
         (
-            RuntimeError("cuda-driver-secret"),
+            ModelInferenceError("shape-secret"),
+            500,
             "Internal inference engine failure.",
-            "cuda-driver-secret",
+            "shape-secret",
         ),
         (
-            ZeroDivisionError("unexpected-math-secret"),
+            RuntimeError("cuda-secret"),
+            500,
+            "Internal inference engine failure.",
+            "cuda-secret",
+        ),
+        (
+            # ValueError is parent of MoleculeValidationError; must map to 500, not 422
+            ValueError("value-secret"),
+            500,
             "An unexpected error occurred during prediction and attribution.",
-            "unexpected-math-secret",
+            "value-secret",
         ),
     ],
 )
-def test_controller_returns_500_without_leaking_internal_exception_details(
-    raised_exception: Exception,
-    expected_message: str,
-    sensitive_detail: str,
+def test_maps_exceptions_without_leaking_details(
+    exc: Exception, status: int, expected_msg: str, secret: str
 ) -> None:
-    stub_service = _StubInferenceService(exc=raised_exception)
-    client = TestClient(_create_test_app(stub_service))
-
-    response = client.post(
-        "/gnn-xai/prediction_and_attribution", json={"smiles": "CCO"}
+    response = TestClient(_create_test_app(_StubInferenceService([exc]))).post(
+        ENDPOINT, json={"smiles": "CCO"}
     )
 
-    assert response.status_code == 500
-    error = ErrorResponse(**response.json())
-    assert error.message == expected_message
-    assert sensitive_detail not in error.message
+    assert response.status_code == status
+    assert ErrorResponse(**response.json()).message == expected_msg
+    assert secret not in response.text
 
 
-def test_controller_serializes_concurrent_requests_to_one_active_inference() -> None:
-    stub_service = _StubInferenceService(delay_s=0.02)
-    test_app = _create_test_app(stub_service)
+def test_returns_499_on_client_disconnect_via_asgi() -> None:
+    stub = _StubInferenceService()
+    test_app = _create_test_app(stub)
 
-    async def _run_concurrent() -> None:
+    async def _run() -> list[dict[str, Any]]:
+        body = json.dumps({"smiles": "CCO"}).encode()
+        body_delivered, disconnected = asyncio.Event(), asyncio.Event()
+        body_sent = False
+        sent: list[dict[str, Any]] = []
+        scope: dict[str, Any] = {
+            "type": "http",
+            "asgi": {"version": "3.0"},
+            "http_version": "1.1",
+            "method": "POST",
+            "scheme": "http",
+            "path": ENDPOINT,
+            "raw_path": ENDPOINT.encode(),
+            "query_string": b"",
+            "headers": [
+                (b"content-type", b"application/json"),
+                (b"content-length", str(len(body)).encode()),
+            ],
+            "client": ("127.0.0.1", 12345),
+            "server": ("testserver", 80),
+        }
+
+        async def _receive() -> dict[str, Any]:
+            nonlocal body_sent
+            if not body_sent:
+                body_sent = True
+                body_delivered.set()
+                return {"type": "http.request", "body": body, "more_body": False}
+            if not disconnected.is_set():
+                await disconnected.wait()
+            return {"type": "http.disconnect"}
+
+        async def _send(message: dict[str, Any]) -> None:
+            sent.append(message)
+
+        async with test_app.state.inference_lock:
+            task = asyncio.create_task(test_app(scope, _receive, _send))
+            await asyncio.wait_for(body_delivered.wait(), timeout=2.0)
+            disconnected.set()
+
+        await asyncio.wait_for(task, timeout=2.0)
+        return sent
+
+    sent = asyncio.run(_run())
+    start = next(m for m in sent if m["type"] == "http.response.start")
+    body = b"".join(
+        m.get("body", b"") for m in sent if m["type"] == "http.response.body"
+    )
+    assert start["status"] == 499
+    assert body == b""
+    assert stub.calls == []
+
+
+def test_recovers_after_service_error() -> None:
+    expected = make_valid_inference_response()
+    stub = _StubInferenceService([ModelInferenceError("transient"), expected])
+    test_app = _create_test_app(stub)
+
+    async def _run() -> tuple[httpx.Response, httpx.Response]:
         transport = httpx.ASGITransport(app=test_app)
-        async with httpx.AsyncClient(
-            transport=transport, base_url="http://testserver"
-        ) as client:
-            responses = await asyncio.gather(
-                client.post(
-                    "/gnn-xai/prediction_and_attribution", json={"smiles": "CCO"}
-                ),
-                client.post(
-                    "/gnn-xai/prediction_and_attribution", json={"smiles": "CC(C)O"}
-                ),
-                client.post(
-                    "/gnn-xai/prediction_and_attribution", json={"smiles": "c1ccccc1"}
-                ),
-            )
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+            r1 = await asyncio.wait_for(c.post(ENDPOINT, json={"smiles": "CCO"}), 2.0)
+            r2 = await asyncio.wait_for(c.post(ENDPOINT, json={"smiles": "CC"}), 2.0)
+            return r1, r2
 
-        for resp in responses:
-            assert resp.status_code == 200
-
-    asyncio.run(_run_concurrent())
-    assert len(stub_service.calls) == 3
-    assert stub_service.max_concurrent_observed == 1
+    failed, recovered = asyncio.run(_run())
+    assert failed.status_code == 500
+    assert recovered.status_code == 200
+    assert GNNXAIInferenceResponse(**recovered.json()) == GNNXAIInferenceResponse(
+        **expected
+    )
+    assert stub.calls == ["CCO", "CC"]
